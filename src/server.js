@@ -24,6 +24,25 @@ const __dirname = path.dirname(__filename);
 const DIST_DIR = path.resolve(__dirname, "..", "dist");
 const RESOURCE_URI = "ui://embedded-sales/demo.html";
 
+async function readBundledAppHtml() {
+  const candidatePaths = [
+    path.join(DIST_DIR, "mcp-app.html"),
+    path.join(DIST_DIR, "src", "mcp-app.html"),
+  ];
+
+  for (const candidatePath of candidatePaths) {
+    try {
+      return await fs.readFile(candidatePath, "utf8");
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error("Bundled MCP App HTML was not found. Run `npm run build` first.");
+}
+
 function summaryTextForDemo(payload) {
   return [
     `${payload.hero.title} for ${payload.brand.name}.`,
@@ -176,7 +195,7 @@ export function createServer() {
       description: "Verdant Bank embedded sales UI mockups for card acquisition.",
     },
     async () => {
-      const html = await fs.readFile(path.join(DIST_DIR, "mcp-app.html"), "utf8");
+      const html = await readBundledAppHtml();
 
       return {
         contents: [
