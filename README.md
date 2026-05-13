@@ -24,6 +24,8 @@ npm run build
 npm run start:stdio
 ```
 
+Use this mode for local MCP clients that launch a server process directly from your machine.
+
 ### Run as an MCP server over HTTP
 
 ```bash
@@ -35,6 +37,56 @@ The HTTP endpoint is:
 ```text
 http://localhost:3001/mcp
 ```
+
+## Present it to the internet
+
+If you want ChatGPT or Claude to reach the HTTP transport from outside your machine, expose `http://localhost:3001/mcp` through a public HTTPS URL.
+
+### Option 1: run on a public host
+
+Deploy the app to a VM, container host or platform service that can run Node.js, then:
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+Expose port `3001` through your reverse proxy and publish a public HTTPS endpoint such as:
+
+```text
+https://your-domain.example/mcp
+```
+
+### Option 2: use a tunnel during demos
+
+For a quick live demo from your laptop, start the server locally:
+
+```bash
+npm start
+```
+
+Then tunnel port `3001` with your preferred tool, for example:
+
+```bash
+ngrok http 3001
+```
+
+or:
+
+```bash
+cloudflared tunnel --url http://localhost:3001
+```
+
+Use the public HTTPS URL from the tunnel and append `/mcp` if needed.
+
+### Internet presentation checklist
+
+- Keep the server running with `npm start`
+- Confirm the public URL forwards traffic to local port `3001`
+- Verify the final public MCP endpoint resolves to `/mcp`
+- Share the HTTPS MCP URL with the client or host configuration
+- Rebuild with `npm run build` after any UI change before re-presenting the demo
 
 ## MCP tools
 
