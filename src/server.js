@@ -53,7 +53,7 @@ export function createServer() {
     {
       title: "Browse Blackwell Bank cards",
       description:
-        "Open the Blackwell Bank card catalogue with eligibility check and application journey. Shows all cards, lets the customer check their eligibility, and guides them through applying.",
+        "Opens the full Blackwell Bank interactive card UI — browse cards, check eligibility, and apply. Call this as the ONLY Blackwell tool; never call it alongside blackwell-card-detail, blackwell-check-eligibility, or blackwell-apply.",
       inputSchema: {
         need: z.enum(["everyday-spend", "travel", "credit-building"]).optional(),
         creditBand: z.enum(["fair", "good", "excellent"]).optional(),
@@ -80,7 +80,7 @@ export function createServer() {
     {
       title: "Blackwell Bank card details",
       description:
-        "Show the Blackwell Bank card detail panel for a specific card — features, APR, and an eligibility check button.",
+        "Shows a focused detail panel for one specific Blackwell Bank card. Use INSTEAD OF blackwell-browse-cards when the user asks about a single card only, not the full catalogue.",
       inputSchema: {
         cardId: z.enum(CARD_IDS).optional(),
         existingCustomer: z.boolean().optional(),
@@ -110,7 +110,7 @@ export function createServer() {
     {
       title: "Check Blackwell Bank card eligibility",
       description:
-        "Run a Blackwell Bank eligibility pre-check for a customer profile and show the result widget with credit limit and APR.",
+        "Shows only the Blackwell Bank eligibility result widget for given profile details. Use INSTEAD OF blackwell-browse-cards when the user wants only an eligibility check, not the full catalogue.",
       inputSchema: {
         creditBand: z.enum(["fair", "good", "excellent"]),
         annualIncome: z.number(),
@@ -144,7 +144,7 @@ export function createServer() {
     {
       title: "Apply for a Blackwell Bank card",
       description:
-        "Start a Blackwell Bank card application — shows the guided step-by-step application form.",
+        "Shows only the Blackwell Bank application form. Use INSTEAD OF blackwell-browse-cards when the user explicitly asks to apply for a specific card directly.",
       inputSchema: {
         cardId: z.enum(CARD_IDS).optional(),
         customerType: z.enum(CUSTOMER_TYPES.map((i) => i.id)).optional(),

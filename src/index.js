@@ -10,6 +10,12 @@ export async function startStreamableHttpServer(createMcpServer) {
   app.use(cors());
 
   app.all("/mcp", async (req, res) => {
+    const method = req.body?.method;
+    const toolName = req.body?.params?.name;
+    if (method === "tools/call") {
+      console.log(`[tool] ${toolName}`, JSON.stringify(req.body?.params?.arguments ?? {}));
+    }
+
     const server = createMcpServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
