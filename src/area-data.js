@@ -5,8 +5,8 @@ const POLICE_BASE = 'https://data.police.uk/api';
 const EA_BASE = 'https://environment.data.gov.uk/flood-monitoring';
 const LR_SPARQL = 'https://landregistry.data.gov.uk/landregistry/query';
 const WEBTRIS_BASE = 'https://webtris.highwaysengland.co.uk/api/v1.0';
-const FUEL_AUTH_URL = 'https://auth.fuelfinder.service.gov.uk/oauth2/token';
-const FUEL_API_BASE = 'https://api.fuelfinder.service.gov.uk/v1';
+const FUEL_AUTH_URL = 'https://www.fuel-finder.service.gov.uk/api/v1/oauth/generate_access_token';
+const FUEL_API_BASE = 'https://www.fuel-finder.service.gov.uk/api';
 
 // Cache the available month so we only query it once per process
 let _policeLatestMonth = null;
@@ -15,6 +15,9 @@ let _webtrisSites = null;
 // Fuel Finder OAuth token cache
 let _fuelToken = null;
 let _fuelTokenExpiry = 0;
+// Fuel station database cache (location + prices joined, TTL 1 hour)
+let _fuelDb = null;
+let _fuelDbExpiry = 0;
 
 async function getLatestPoliceMonth() {
   if (_policeLatestMonth) return _policeLatestMonth;
@@ -596,22 +599,66 @@ async function getFuelToken() {
   const res = await fetch(FUEL_AUTH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret }),
+    body: new URLSearchParams({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret, scope: 'fuelfinder.read' }),
     signal: AbortSignal.timeout(10000),
   }).catch(err => { console.error('[fuel-auth] fetch error:', err.message); return null; });
 
   if (!res) { console.error('[fuel-auth] no response'); return null; }
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    console.error(`[fuel-auth] HTTP ${res.status}:`, body.slice(0, 200));
+    console.error(`[fuel-auth] HTTP ${res.status}:`, body.slice(0, 300));
     return null;
   }
-  const json = await res.json().catch(err => { console.error('[fuel-auth] json parse error:', err.message); return {}; });
-  const { access_token, expires_in } = json;
-  if (!access_token) { console.error('[fuel-auth] no access_token in response:', JSON.stringify(json).slice(0, 200)); return null; }
+  const json = await res.json().catch(err => { console.error('[fuel-auth] json error:', err.message); return {}; });
+  // Response wrapped: { success, data: { access_token, expires_in, ... } }
+  const payload = json.data ?? json;
+  const { access_token, expires_in } = payload;
+  if (!access_token) { console.error('[fuel-auth] no access_token:', JSON.stringify(json).slice(0, 200)); return null; }
   _fuelToken = access_token;
   _fuelTokenExpiry = Date.now() + (expires_in || 3600) * 1000;
   return _fuelToken;
+}
+
+async function fetchFuelBatches(path, token, maxBatches = 30) {
+  const results = [];
+  for (let batch = 1; batch <= maxBatches; batch++) {
+    const res = await fetch(`${FUEL_API_BASE}/v1/${path}?batch-number=${batch}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(15000),
+    }).catch(() => null);
+    if (!res?.ok) break;
+    const data = await res.json().catch(() => null);
+    if (!Array.isArray(data) || data.length === 0) break;
+    results.push(...data);
+    if (data.length < 500) break; // last batch
+  }
+  return results;
+}
+
+async function loadFuelDb(token) {
+  if (_fuelDb && Date.now() < _fuelDbExpiry) return _fuelDb;
+
+  console.log('[fuel] Loading station database...');
+  const [pfsData, priceData] = await Promise.all([
+    fetchFuelBatches('pfs', token),
+    fetchFuelBatches('pfs/fuel-prices', token),
+  ]);
+
+  const locationMap = new Map(pfsData.map(s => [s.node_id, s]));
+
+  const joined = [];
+  for (const p of priceData) {
+    const info = locationMap.get(p.node_id);
+    const lat = parseFloat(info?.location?.latitude);
+    const lng = parseFloat(info?.location?.longitude);
+    if (!info || isNaN(lat) || isNaN(lng)) continue;
+    joined.push({ ...info, _lat: lat, _lng: lng, fuel_prices: p.fuel_prices });
+  }
+
+  console.log(`[fuel] ${joined.length} stations loaded`);
+  _fuelDb = joined;
+  _fuelDbExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
+  return _fuelDb;
 }
 
 export async function getFuelPrices(lat, lng) {
@@ -622,31 +669,9 @@ export async function getFuelPrices(lat, lng) {
   const token = await getFuelToken();
   if (!token) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
 
-  const res = await fetch(`${FUEL_API_BASE}/pfs`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-    signal: AbortSignal.timeout(20000),
-  }).catch(err => { console.error('[fuel-pfs] fetch error:', err.message); return null; });
+  const db = await loadFuelDb(token).catch(err => { console.error('[fuel-db]', err.message); return null; });
+  if (!db) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
 
-  if (!res) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    console.error(`[fuel-pfs] HTTP ${res.status}:`, body.slice(0, 200));
-    return { kind: 'area-fuel', stations: [], error: res.status === 401 ? 'auth_failed' : 'unavailable' };
-  }
-
-  const data = await res.json().catch(() => null);
-  const all = Array.isArray(data) ? data : (data?.stations || data?.pfs || data?.forecourts || []);
-
-  // Resolve lat/lng from whichever location shape the API uses
-  function stationLatLng(s) {
-    const flat = parseFloat(s.latitude ?? s.lat ?? s.location?.latitude ?? s.geo_location?.latitude ?? s.address?.latitude);
-    const flng = parseFloat(s.longitude ?? s.lng ?? s.long ?? s.location?.longitude ?? s.geo_location?.longitude ?? s.address?.longitude);
-    return isNaN(flat) || isNaN(flng) ? null : { lat: flat, lng: flng };
-  }
-
-  // fuel_prices is an array: [{ fuel_type, price, price_last_updated, ... }]
   function parsePrices(fuelPricesArr) {
     if (!Array.isArray(fuelPricesArr)) return {};
     const map = {};
@@ -665,35 +690,30 @@ export async function getFuelPrices(lat, lng) {
   }
 
   const SUPERMARKET_NAMES = ['TESCO', 'ASDA', 'SAINSBURY', 'MORRISONS', 'ALDI', 'LIDL', 'COSTCO'];
+  const FUEL_TYPES = ['E10', 'E5', 'B7_STANDARD', 'B7_PREMIUM', 'B10', 'HVO'];
 
-  const nearby = all
-    .map(s => {
-      const pos = stationLatLng(s);
-      if (!pos) return null;
-      return { ...s, _lat: pos.lat, _lng: pos.lng, distKm: haversineKm(lat, lng, pos.lat, pos.lng) };
-    })
-    .filter(s => s && s.distKm <= 20)
+  const nearby = db
+    .map(s => ({ ...s, distKm: haversineKm(lat, lng, s._lat, s._lng) }))
+    .filter(s => s.distKm <= 20)
     .sort((a, b) => a.distKm - b.distKm)
     .slice(0, 20);
 
-  const fuelTypes = ['E10', 'E5', 'B7_Standard', 'B7_Premium', 'B10', 'HVO'];
-
   const stations = nearby.map(s => {
     const prices = parsePrices(s.fuel_prices);
-    const name = s.trading_name || s.brand_name || s.name || 'Unknown';
+    const name = s.trading_name || s.brand_name || 'Unknown';
     const isSupermarket = s.is_supermarket_service_station ||
       SUPERMARKET_NAMES.some(sup => name.toUpperCase().includes(sup));
     return {
       nodeId: s.node_id,
       name,
       brand: s.brand_name || null,
-      postcode: s.location?.postcode || s.postcode || s.address?.postcode || null,
+      postcode: s.location?.postcode || null,
       phone: s.public_phone_number || null,
       lat: s._lat,
       lng: s._lng,
       distKm: parseFloat(s.distKm.toFixed(2)),
       prices: Object.fromEntries(
-        fuelTypes.filter(ft => prices[ft] != null).map(ft => [ft, Math.round(prices[ft] * 10) / 10])
+        FUEL_TYPES.filter(ft => prices[ft] != null).map(ft => [ft, prices[ft]])
       ),
       updatedAt: latestUpdate(s.fuel_prices),
       isSupermarket,
@@ -701,7 +721,7 @@ export async function getFuelPrices(lat, lng) {
   });
 
   const cheapest = {};
-  for (const ft of fuelTypes) {
+  for (const ft of FUEL_TYPES) {
     const withPrice = stations.filter(s => s.prices[ft] != null);
     if (withPrice.length) {
       const best = withPrice.reduce((a, b) => a.prices[ft] < b.prices[ft] ? a : b);

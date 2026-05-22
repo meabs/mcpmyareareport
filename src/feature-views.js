@@ -703,7 +703,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     }
   }
 
-  const FUEL_LABELS = { E10: 'Unleaded E10', E5: 'Premium E5', B7_Standard: 'Diesel', B7_Premium: 'Premium Diesel', B10: 'B10 Bio', HVO: 'HVO' };
+  const FUEL_LABELS = { E10: 'Unleaded E10', E5: 'Premium E5', B7_STANDARD: 'Diesel', B7_PREMIUM: 'Premium Diesel', B10: 'B10 Bio', HVO: 'HVO' };
 
   function renderFuelDetail(bodyId) {
     const el = document.getElementById(bodyId);
@@ -713,7 +713,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     if (data.error) {
       const msg = data.error === 'credentials_missing'
         ? 'Fuel price data is not configured on this server.'
-        : 'Fuel price data is temporarily unavailable — the GOV.UK Fuel Finder API is not yet live. Check back soon.';
+        : 'Fuel price data is temporarily unavailable. Please try again shortly.';
       el.innerHTML = `<div class="empty-state">${msg}</div>`;
       notifyHostSize();
       return;
@@ -725,7 +725,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       return;
     }
 
-    const fuelTypes = ['E10', 'E5', 'B7_Standard', 'B7_Premium'];
+    const fuelTypes = ['E10', 'E5', 'B7_STANDARD', 'B7_PREMIUM'];
     const available = fuelTypes.filter(ft => data.stations.some(s => s.prices[ft] != null));
 
     const cheapestRow = available.map(ft => {
