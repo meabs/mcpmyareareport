@@ -517,16 +517,16 @@ export function createServer() {
     },
     async ({ query }) => {
       const resolved = await resolveInputToPostcode(query);
-      const payload = await getAreaReport(resolved.postcode);
+      const area = await geocodePostcode(resolved.postcode);
       if (resolved.isApproximate) {
-        payload.area.isApproximate = true;
-        payload.area.placeName = resolved.placeName;
-        payload.area.outcode = resolved.outcode;
-        payload.area.localType = resolved.localType || '';
+        area.isApproximate = true;
+        area.placeName = resolved.placeName;
+        area.outcode = resolved.outcode;
+        area.localType = resolved.localType || '';
       }
       return {
-        content: [{ type: "text", text: `Area loaded: ${payload.area.postcode}` }],
-        structuredContent: payload,
+        content: [{ type: "text", text: `Area loaded: ${area.postcode}` }],
+        structuredContent: { kind: 'area-loading', area },
       };
     },
   );
@@ -663,8 +663,8 @@ export function createServer() {
                   "https://environment.data.gov.uk",
                   "https://landregistry.data.gov.uk",
                   "https://webtris.highwaysengland.co.uk",
-                  "https://auth.fuelfinder.service.gov.uk",
-                  "https://api.fuelfinder.service.gov.uk",
+                  "https://www.fuel-finder.service.gov.uk",
+                  "https://tile.openstreetmap.org",
                 ],
                 resourceDomains: [
                   "https://tile.openstreetmap.org",

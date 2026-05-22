@@ -547,35 +547,37 @@ export async function getHighwaysData(lat, lng) {
     };
   }
 
-  // Try within 30km, fallback to 50km if fewer than 3 sites found
+  // Try within 50km, take up to 15 candidates (many urban sites have no data so we need more to try)
   let nearby = sites
     .map(s => ({ ...s, distKm: haversineKm(lat, lng, s.Latitude, s.Longitude) }))
-    .filter(s => s.distKm <= 30)
+    .filter(s => s.distKm <= 50)
     .sort((a, b) => a.distKm - b.distKm)
-    .slice(0, 6);
+    .slice(0, 15);
 
-  if (nearby.length < 2) {
+  if (!nearby.length) {
     nearby = sites
       .map(s => ({ ...s, distKm: haversineKm(lat, lng, s.Latitude, s.Longitude) }))
-      .filter(s => s.distKm <= 50)
+      .filter(s => s.distKm <= 100)
       .sort((a, b) => a.distKm - b.distKm)
-      .slice(0, 6);
+      .slice(0, 10);
   }
 
   if (!nearby.length) {
-    return { kind: 'area-roads', sites: [], reportMonth: null, note: 'No National Highways monitoring sites found within 50 km. This area may not be covered by motorway sensors.' };
+    return { kind: 'area-roads', sites: [], reportMonth: null, note: 'No National Highways monitoring sites found within 100 km. This area may not be covered by motorway sensors.' };
   }
 
-  // Try last month, fall back to 2 months ago if no data
+  // Try last 3 months until we find data (many sites have delayed or missing reports)
   let reports = await fetchMonthlyReports(nearby, 1);
-  const hasData = reports.some(r => r.report);
-  if (!hasData) {
-    reports = await fetchMonthlyReports(nearby, 2);
-  }
+  if (!reports.some(r => r.report)) reports = await fetchMonthlyReports(nearby, 2);
+  if (!reports.some(r => r.report)) reports = await fetchMonthlyReports(nearby, 3);
+
+  // Return only sites that have data, up to 6
+  const withData = reports.filter(r => r.report);
+  const finalReports = withData.length ? withData.slice(0, 6) : reports.slice(0, 6);
 
   return {
     kind: 'area-roads',
-    sites: reports.map(r => ({
+    sites: finalReports.map(r => ({
       id: r.site.Id,
       name: r.site.Name,
       description: r.site.Description,
@@ -584,7 +586,7 @@ export async function getHighwaysData(lat, lng) {
       distKm: parseFloat(r.site.distKm.toFixed(1)),
       report: r.report,
     })),
-    reportMonth: reports.find(r => r.report)?.report?.month || null,
+    reportMonth: finalReports.find(r => r.report)?.report?.month || null,
   };
 }
 

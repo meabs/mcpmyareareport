@@ -150,6 +150,30 @@ function handleToolResult(result) {
   const payload = extractPayload(result);
   if (!payload?.kind) return false;
 
+  if (payload.kind === "area-loading") {
+    state.area    = payload.area;
+    state.month   = null;
+    state.crime   = null;
+    state.flood   = null;
+    state.mode    = "full";
+    state.activeTab = "overview";
+    state.crimeDetail = null;
+    state.floodDetail = null;
+    state.propertyDetail = null;
+    state.roadsDetail = null;
+    state.fuelDetail = null;
+    showView("full");
+    updateHeader();
+    features?.renderOverview();
+    bootstrapped = true;
+    // auto-load crime and flood in parallel without blocking
+    Promise.all([
+      callServerTool("area-app-crime", { postcode: state.area.postcode }),
+      callServerTool("area-app-flood", { postcode: state.area.postcode }),
+    ]).catch(() => {});
+    return true;
+  }
+
   if (payload.kind === "area-overview") {
     state.area    = payload.area;
     state.month   = payload.month;
@@ -176,8 +200,12 @@ function handleToolResult(result) {
     state.crimeDetail = payload.crime;
     if (!state.crime) state.crime = payload.crime;
     if (state.mode === "full") {
-      features?.showTab("crime");
-      features?.renderCrimeDetail("crime-body");
+      if (state.activeTab === "overview") {
+        features?.renderOverview();
+      } else {
+        features?.showTab("crime");
+        features?.renderCrimeDetail("crime-body");
+      }
     } else {
       state.mode = "crime";
       showView("crime");
@@ -194,8 +222,12 @@ function handleToolResult(result) {
     state.floodDetail = payload.flood;
     if (!state.flood) state.flood = payload.flood;
     if (state.mode === "full") {
-      features?.showTab("flood");
-      features?.renderFloodDetail("flood-body");
+      if (state.activeTab === "overview") {
+        features?.renderOverview();
+      } else {
+        features?.showTab("flood");
+        features?.renderFloodDetail("flood-body");
+      }
     } else {
       state.mode = "flood";
       showView("flood");

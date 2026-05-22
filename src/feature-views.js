@@ -225,23 +225,26 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const el = document.getElementById("stat-row");
     if (!el || !state.area) return;
     const { crime, flood, month } = state;
-    const crimeBg = { none:"#dcfce7", low:"#dcfce7", medium:"#fef3c7", high:"#fee2e2", "very-high":"#fee2e2" };
+    const crimeVal  = crime  ? crime.total  : `<span class="stat-loading">…</span>`;
+    const crimeChip = crime  ? crimeAvgChip(crime) : `<span class="stat-loading">loading</span>`;
+    const floodVal  = flood
+      ? `${flood.warnings} <span style="font-size:0.9rem;font-weight:500">warnings</span>`
+      : `<span class="stat-loading">…</span>`;
+    const floodBadge = flood
+      ? `<span class="risk-badge ${flood.riskLevel}"><span class="risk-dot"></span>${riskLabel(flood.riskLevel)}</span>`
+      : `<span class="stat-loading">loading</span>`;
     el.innerHTML = `
       <div class="stat-card" data-action="tab-crime" title="View crime details">
         <div class="stat-card-icon">🔎</div>
         <div class="stat-card-label">Total crimes</div>
-        <div class="stat-card-value">${crime?.total ?? "—"}</div>
-        <div class="stat-card-sub">${crimeAvgChip(crime)}</div>
+        <div class="stat-card-value">${crimeVal}</div>
+        <div class="stat-card-sub">${crimeChip}</div>
       </div>
       <div class="stat-card" data-action="tab-flood" title="View flood details">
         <div class="stat-card-icon">🌊</div>
         <div class="stat-card-label">Flood status</div>
-        <div class="stat-card-value">${flood?.warnings ?? 0} <span style="font-size:0.9rem;font-weight:500">warnings</span></div>
-        <div class="stat-card-sub">
-          <span class="risk-badge ${flood?.riskLevel ?? 'none'}">
-            <span class="risk-dot"></span>${riskLabel(flood?.riskLevel)}
-          </span>
-        </div>
+        <div class="stat-card-value">${floodVal}</div>
+        <div class="stat-card-sub">${floodBadge}</div>
       </div>
       <div class="stat-card" style="cursor:default">
         <div class="stat-card-icon">📅</div>
@@ -269,7 +272,14 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
 
   function renderOverviewCrime() {
     const el = document.getElementById("overview-crime");
-    if (!el || !state.crime) return;
+    if (!el) return;
+    if (!state.crime) {
+      el.innerHTML = `
+        <div class="section-header"><h2 class="section-title">Crime by category</h2></div>
+        <div class="section-body"><div class="data-loading-row"><div class="data-loading-bar"></div><div class="data-loading-bar" style="width:70%"></div><div class="data-loading-bar" style="width:55%"></div></div></div>
+      `;
+      return;
+    }
     el.innerHTML = `
       <div class="section-header">
         <h2 class="section-title">Crime by category</h2>
@@ -297,7 +307,14 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
 
   function renderOverviewFlood() {
     const el = document.getElementById("overview-flood");
-    if (!el || !state.flood) return;
+    if (!el) return;
+    if (!state.flood) {
+      el.innerHTML = `
+        <div class="section-header"><h2 class="section-title">Flood risk</h2></div>
+        <div class="section-body"><div class="data-loading-row"><div class="data-loading-bar" style="width:60%"></div><div class="data-loading-bar" style="width:45%"></div></div></div>
+      `;
+      return;
+    }
     el.innerHTML = `
       <div class="section-header">
         <h2 class="section-title">Flood risk</h2>
@@ -340,7 +357,8 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       addCrimeMarkers(map, state.crime?.markers);
       addFloodStationMarkers(map, state.flood?.stations);
       addCentreMarker(map, state.area.lat, state.area.lng, state.area.postcode);
-      setTimeout(() => map.invalidateSize(), 100);
+      setTimeout(() => map.invalidateSize(), 150);
+      setTimeout(() => map.invalidateSize(), 500);
     }
     renderLegend(state.crime?.categories);
     notifyHostSize();
@@ -445,7 +463,8 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         clearMapLayers(map);
         addCrimeMarkers(map, crime.markers || state.crime?.markers);
         addCentreMarker(map, state.area.lat, state.area.lng, state.area.postcode);
-        setTimeout(() => map.invalidateSize(), 100);
+        setTimeout(() => map.invalidateSize(), 150);
+      setTimeout(() => map.invalidateSize(), 500);
       }
     }
 
@@ -510,7 +529,8 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         clearMapLayers(map);
         addFloodStationMarkers(map, flood.stations);
         addCentreMarker(map, state.area.lat, state.area.lng, state.area.postcode);
-        setTimeout(() => map.invalidateSize(), 100);
+        setTimeout(() => map.invalidateSize(), 150);
+      setTimeout(() => map.invalidateSize(), 500);
       }
     }
 
