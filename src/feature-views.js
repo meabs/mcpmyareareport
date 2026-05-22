@@ -632,7 +632,8 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     if (!el || !data) return;
 
     if (!data.sites?.length) {
-      el.innerHTML = `<div class="empty-state">${data.note || 'No National Highways monitoring sites found within 25 km.'}</div>`;
+      const isError = Boolean(data.error);
+      el.innerHTML = `<div class="empty-state${isError ? ' empty-state-error' : ''}">${data.note || 'No National Highways monitoring sites found within 25 km.'}</div>`;
       notifyHostSize();
       return;
     }

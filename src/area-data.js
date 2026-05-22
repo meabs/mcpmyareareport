@@ -500,10 +500,11 @@ function fmtWebtrisDate(d) {
 async function fetchWebtrisSites() {
   if (_webtrisSites) return _webtrisSites;
   const res = await fetch(`${WEBTRIS_BASE}/sites`, { signal: AbortSignal.timeout(10000) }).catch(() => null);
-  if (!res?.ok) return [];
+  if (!res) return { error: 'network', sites: [] };
+  if (!res.ok) return { error: `http_${res.status}`, sites: [] };
   const { sites } = await res.json().catch(() => ({ sites: [] }));
   _webtrisSites = (sites || []).filter(s => s.Status === 'Active' && s.Latitude && s.Longitude);
-  return _webtrisSites;
+  return { sites: _webtrisSites };
 }
 
 async function fetchMonthlyReports(nearby, monthOffset) {
@@ -531,7 +532,17 @@ async function fetchMonthlyReports(nearby, monthOffset) {
 }
 
 export async function getHighwaysData(lat, lng) {
-  const sites = await fetchWebtrisSites();
+  const { sites, error: sitesError } = await fetchWebtrisSites();
+
+  if (sitesError) {
+    const status = sitesError.startsWith('http_') ? sitesError.slice(5) : null;
+    return {
+      kind: 'area-roads', sites: [], reportMonth: null, error: sitesError,
+      note: status
+        ? `National Highways traffic data service is temporarily unavailable (HTTP ${status}). Please try again later.`
+        : 'Could not reach the National Highways traffic data service. Please check your connection and try again.',
+    };
+  }
 
   // Try within 30km, fallback to 50km if fewer than 3 sites found
   let nearby = sites

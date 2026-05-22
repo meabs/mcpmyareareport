@@ -1042,6 +1042,13 @@
   padding: 4px 0;
 }
 
+.empty-state-error {
+  color: var(--amber);
+  background: var(--amber-bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
 .road-site-meta {
   display: flex;
   align-items: center;

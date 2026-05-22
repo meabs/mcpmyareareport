@@ -302,6 +302,7 @@ const OUT_ROADS = {
     },
     reportMonth: { type: ["string", "null"] },
     note:        { type: "string" },
+    error:       { type: "string", description: "Set when the upstream API failed, e.g. http_502" },
   },
 };
 
