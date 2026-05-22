@@ -359,7 +359,6 @@ export function createServer() {
         postcode: z.string().describe("UK postcode, e.g. SW1A 1AA or CH1 1AA"),
       },
       annotations: HINTS,
-      outputSchema: OUT_OVERVIEW,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -385,7 +384,6 @@ export function createServer() {
         postcode: z.string().describe("UK postcode"),
       },
       annotations: HINTS,
-      outputSchema: OUT_CRIME,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -411,7 +409,6 @@ export function createServer() {
         postcode: z.string().describe("UK postcode"),
       },
       annotations: HINTS,
-      outputSchema: OUT_FLOOD,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -437,7 +434,6 @@ export function createServer() {
         postcode: z.string().describe("UK postcode, e.g. SW1A 1AA — the outcode (district) is used for the property search"),
       },
       annotations: HINTS,
-      outputSchema: OUT_PROPERTY,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -465,7 +461,6 @@ export function createServer() {
         postcode: z.string().describe("UK postcode"),
       },
       annotations: HINTS,
-      outputSchema: OUT_ROADS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -493,7 +488,6 @@ export function createServer() {
         postcode: z.string().describe("UK postcode"),
       },
       annotations: HINTS,
-      outputSchema: OUT_FUEL,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -516,7 +510,6 @@ export function createServer() {
       description: "Fetch area overview for a postcode or place name entered in the search form.",
       inputSchema: { query: z.string().describe("UK postcode or place name (e.g. 'Chester', 'SW1A 2AA')") },
       annotations: HINTS,
-      outputSchema: OUT_OVERVIEW,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ query }) => {
@@ -544,7 +537,6 @@ export function createServer() {
       description: "Fetch detailed crime data for the current area.",
       inputSchema: { postcode: z.string() },
       annotations: HINTS,
-      outputSchema: OUT_CRIME,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
@@ -565,7 +557,6 @@ export function createServer() {
       description: "Fetch detailed flood data for the current area.",
       inputSchema: { postcode: z.string() },
       annotations: HINTS,
-      outputSchema: OUT_FLOOD,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
@@ -586,7 +577,6 @@ export function createServer() {
       description: "Fetch Land Registry house price data for the current area.",
       inputSchema: { postcode: z.string() },
       annotations: HINTS,
-      outputSchema: OUT_PROPERTY,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
@@ -608,7 +598,6 @@ export function createServer() {
       description: "Fetch GOV.UK Fuel Finder prices for petrol stations near the current area.",
       inputSchema: { postcode: z.string() },
       annotations: HINTS,
-      outputSchema: OUT_FUEL,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
@@ -631,7 +620,6 @@ export function createServer() {
       description: "Fetch National Highways traffic monitoring data for the current area.",
       inputSchema: { postcode: z.string() },
       annotations: HINTS,
-      outputSchema: OUT_ROADS,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
