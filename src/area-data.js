@@ -23,6 +23,7 @@ let _fuelTokenExpiry = 0;
 // Fuel station database cache (location + prices joined, TTL 1 hour)
 let _fuelDb = null;
 let _fuelDbExpiry = 0;
+let _fuelDbPromise = null;
 
 async function getLatestPoliceMonth() {
   if (_policeLatestMonth) return _policeLatestMonth;
@@ -192,14 +193,32 @@ function toMarkers(crimes) {
 
 export async function getAreaReport(postcode) {
   const area = await geocodePostcode(postcode);
-  const month = await getLatestPoliceMonth();
+  const latest = await getLatestPoliceMonth();
 
-  const [crimes, stopSearch, floodAlerts, stations] = await Promise.all([
-    fetchCrimes(area.lat, area.lng, month),
-    fetchStopSearch(area.lat, area.lng, month),
+  const [crimes0, stopSearch0, floodAlerts, stations] = await Promise.all([
+    fetchCrimes(area.lat, area.lng, latest),
+    fetchStopSearch(area.lat, area.lng, latest),
     fetchFloodAlerts(area.county),
     fetchFloodStations(area.lat, area.lng),
   ]);
+
+  // Sparse-data fallback: try older months in parallel if latest has very few crimes
+  let crimes = crimes0;
+  let stopSearch = stopSearch0;
+  let month = latest;
+  if (crimes.length < 10) {
+    const extras = await Promise.all(
+      [1, 2, 3, 4, 5].map(i => fetchCrimes(area.lat, area.lng, monthOffset(latest, i)))
+    );
+    const all = [crimes0, ...extras];
+    const allMonths = [latest, ...[1,2,3,4,5].map(i => monthOffset(latest, i))];
+    const bestIdx = all.reduce((bi, c, i) => c.length > all[bi].length ? i : bi, 0);
+    if (bestIdx > 0) {
+      crimes = all[bestIdx];
+      month = allMonths[bestIdx];
+      stopSearch = await fetchStopSearch(area.lat, area.lng, month);
+    }
+  }
 
   const categories = categorizeCrimes(crimes);
   const activeWarnings = floodAlerts.filter(f => f.severity === 2 || f.severity === 1).length;
@@ -249,12 +268,35 @@ export async function getCrimeDetail(postcode) {
   const latest = await getLatestPoliceMonth();
   const months = [latest, monthOffset(latest, 1), monthOffset(latest, 2)];
 
-  const [m0, m1, m2, stopSearch] = await Promise.all([
+  let [m0, m1, m2, stopSearch] = await Promise.all([
     fetchCrimes(area.lat, area.lng, months[0]),
     fetchCrimes(area.lat, area.lng, months[1]),
     fetchCrimes(area.lat, area.lng, months[2]),
     fetchStopSearch(area.lat, area.lng, months[0]),
   ]);
+
+  // Some forces (e.g. GMP) have sparse recent data. Try older months if the latest 3 look empty.
+  if (m0.length < 10 && m1.length < 10 && m2.length < 10) {
+    const extra = await Promise.all([
+      fetchCrimes(area.lat, area.lng, monthOffset(latest, 3)),
+      fetchCrimes(area.lat, area.lng, monthOffset(latest, 4)),
+      fetchCrimes(area.lat, area.lng, monthOffset(latest, 5)),
+    ]);
+    const all6 = [m0, m1, m2, ...extra];
+    const allMonths6 = [months[0], months[1], months[2],
+      monthOffset(latest, 3), monthOffset(latest, 4), monthOffset(latest, 5)];
+    // Pick the month with most data as the primary; keep prev/next for trend
+    const bestIdx = all6.reduce((bi, arr, i) => arr.length > all6[bi].length ? i : bi, 0);
+    const prevIdx = bestIdx > 0 ? bestIdx - 1 : 0;
+    const prev2Idx = bestIdx > 1 ? bestIdx - 2 : 0;
+    m0 = all6[bestIdx];
+    m1 = all6[prevIdx];
+    m2 = all6[prev2Idx];
+    months[0] = allMonths6[bestIdx];
+    months[1] = allMonths6[prevIdx];
+    months[2] = allMonths6[prev2Idx];
+    stopSearch = await fetchStopSearch(area.lat, area.lng, months[0]);
+  }
 
   const outcomes = {};
   for (const c of m0) {
@@ -722,28 +764,39 @@ async function fetchFuelBatches(path, token, maxBatches = 30) {
 
 async function loadFuelDb(token) {
   if (_fuelDb && Date.now() < _fuelDbExpiry) return _fuelDb;
+  if (_fuelDbPromise) return _fuelDbPromise;
 
-  console.log('[fuel] Loading station database...');
-  const [pfsData, priceData] = await Promise.all([
-    fetchFuelBatches('pfs', token),
-    fetchFuelBatches('pfs/fuel-prices', token),
-  ]);
+  _fuelDbPromise = (async () => {
+    try {
+      console.log('[fuel] Loading station database...');
+      const [pfsData, priceData] = await Promise.all([
+        fetchFuelBatches('pfs', token),
+        fetchFuelBatches('pfs/fuel-prices', token),
+      ]);
 
-  const locationMap = new Map(pfsData.map(s => [s.node_id, s]));
+      const locationMap = new Map(pfsData.map(s => [s.node_id, s]));
+      const joined = [];
+      for (const p of priceData) {
+        const info = locationMap.get(p.node_id);
+        const lat = parseFloat(info?.location?.latitude);
+        const lng = parseFloat(info?.location?.longitude);
+        if (!info || isNaN(lat) || isNaN(lng)) continue;
+        joined.push({ ...info, _lat: lat, _lng: lng, fuel_prices: p.fuel_prices });
+      }
 
-  const joined = [];
-  for (const p of priceData) {
-    const info = locationMap.get(p.node_id);
-    const lat = parseFloat(info?.location?.latitude);
-    const lng = parseFloat(info?.location?.longitude);
-    if (!info || isNaN(lat) || isNaN(lng)) continue;
-    joined.push({ ...info, _lat: lat, _lng: lng, fuel_prices: p.fuel_prices });
-  }
+      console.log(`[fuel] ${joined.length} stations loaded`);
+      _fuelDb = joined;
+      _fuelDbExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
+    } catch (err) {
+      console.error('[fuel-db] Load failed:', err.message);
+      _fuelDb = _fuelDb || null; // keep previous cache if available
+    } finally {
+      _fuelDbPromise = null;
+    }
+    return _fuelDb;
+  })();
 
-  console.log(`[fuel] ${joined.length} stations loaded`);
-  _fuelDb = joined;
-  _fuelDbExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
-  return _fuelDb;
+  return _fuelDbPromise;
 }
 
 export async function getFuelPrices(lat, lng) {

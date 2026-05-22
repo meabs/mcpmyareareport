@@ -290,7 +290,8 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       </div>
       <div class="section-body">
         <div id="overview-crime-bars" class="crime-bar-list"></div>
-        <p style="margin:12px 0 0;font-size:0.72rem;color:var(--muted)">
+        ${state.crime.total < 20 ? `<p style="margin:8px 0 0;font-size:0.7rem;color:var(--muted);background:var(--bg-muted,#f8fafc);padding:6px 8px;border-radius:6px;border-left:3px solid var(--border)">⚠ Data completeness varies by police force. This area may have limited coverage in the Police UK database.</p>` : ''}
+        <p style="margin:8px 0 0;font-size:0.72rem;color:var(--muted)">
           ${state.crime.stopSearch} stop & search recorded this month.
           <button class="hint-chip" style="margin-left:6px" id="crime-detail-link">Full analysis →</button>
         </p>
