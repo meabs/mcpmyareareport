@@ -596,13 +596,19 @@ async function getFuelToken() {
   const res = await fetch(FUEL_AUTH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret, scope: 'fuelfinder.read' }),
+    body: new URLSearchParams({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret }),
     signal: AbortSignal.timeout(10000),
-  }).catch(() => null);
+  }).catch(err => { console.error('[fuel-auth] fetch error:', err.message); return null; });
 
-  if (!res?.ok) return null;
-  const { access_token, expires_in } = await res.json().catch(() => ({}));
-  if (!access_token) return null;
+  if (!res) { console.error('[fuel-auth] no response'); return null; }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    console.error(`[fuel-auth] HTTP ${res.status}:`, body.slice(0, 200));
+    return null;
+  }
+  const json = await res.json().catch(err => { console.error('[fuel-auth] json parse error:', err.message); return {}; });
+  const { access_token, expires_in } = json;
+  if (!access_token) { console.error('[fuel-auth] no access_token in response:', JSON.stringify(json).slice(0, 200)); return null; }
   _fuelToken = access_token;
   _fuelTokenExpiry = Date.now() + (expires_in || 3600) * 1000;
   return _fuelToken;
@@ -616,15 +622,19 @@ export async function getFuelPrices(lat, lng) {
   const token = await getFuelToken();
   if (!token) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
 
-  // POST with empty body fetches all current prices ("All" mode)
   const res = await fetch(`${FUEL_API_BASE}/pfs`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
     signal: AbortSignal.timeout(20000),
-  }).catch(() => null);
+  }).catch(err => { console.error('[fuel-pfs] fetch error:', err.message); return null; });
 
-  if (!res?.ok) return { kind: 'area-fuel', stations: [], error: res?.status === 401 ? 'auth_failed' : 'unavailable' };
+  if (!res) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    console.error(`[fuel-pfs] HTTP ${res.status}:`, body.slice(0, 200));
+    return { kind: 'area-fuel', stations: [], error: res.status === 401 ? 'auth_failed' : 'unavailable' };
+  }
 
   const data = await res.json().catch(() => null);
   const all = Array.isArray(data) ? data : (data?.stations || data?.pfs || data?.forecourts || []);
