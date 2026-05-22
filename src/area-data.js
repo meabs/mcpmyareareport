@@ -609,7 +609,7 @@ export async function getFuelPrices(lat, lng) {
       ...s,
       distKm: haversineKm(lat, lng, parseFloat(s.location.latitude), parseFloat(s.location.longitude)),
     }))
-    .filter(s => s.distKm <= 5)
+    .filter(s => s.distKm <= 20)
     .sort((a, b) => a.distKm - b.distKm)
     .slice(0, 20);
 
@@ -695,7 +695,7 @@ export function formatToolResultText(kind, payload) {
     const { stations, cheapest, error } = payload;
     if (error === 'credentials_missing') return 'Fuel price data: API credentials not configured.';
     if (error === 'unavailable') return 'Fuel price data temporarily unavailable.';
-    if (!stations.length) return 'No petrol stations found within 5 km.';
+    if (!stations.length) return 'No petrol stations found within 20 km.';
     const lines = [`Fuel prices — ${stations.length} stations within 5 km`];
     if (cheapest?.E10) lines.push(`Cheapest unleaded (E10): ${cheapest.E10.price}p — ${cheapest.E10.name} (${cheapest.E10.distKm} km)`);
     if (cheapest?.B7_Standard) lines.push(`Cheapest diesel (B7): ${cheapest.B7_Standard.price}p — ${cheapest.B7_Standard.name} (${cheapest.B7_Standard.distKm} km)`);

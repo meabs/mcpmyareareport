@@ -481,7 +481,7 @@ export function createServer() {
     {
       title: "MyAreaReport: Fuel Prices",
       description:
-        "Shows live petrol and diesel prices at filling stations within 5 km of a UK postcode from the GOV.UK Fuel Finder service. " +
+        "Shows live petrol and diesel prices at filling stations within 20 km of a UK postcode from the GOV.UK Fuel Finder service. " +
         "Use when the user asks about petrol prices, diesel prices, cheap fuel, or nearby petrol stations. " +
         "Follow-up: highlight the cheapest unleaded and diesel station.",
       inputSchema: {
