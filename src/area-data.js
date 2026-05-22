@@ -498,12 +498,12 @@ function fmtWebtrisDate(d) {
 }
 
 async function fetchWebtrisSites() {
-  if (_webtrisSites) return _webtrisSites;
+  if (_webtrisSites) return { sites: _webtrisSites };
   const res = await fetch(`${WEBTRIS_BASE}/sites`, { signal: AbortSignal.timeout(10000) }).catch(() => null);
   if (!res) return { error: 'network', sites: [] };
   if (!res.ok) return { error: `http_${res.status}`, sites: [] };
-  const { sites } = await res.json().catch(() => ({ sites: [] }));
-  _webtrisSites = (sites || []).filter(s => s.Status === 'Active' && s.Latitude && s.Longitude);
+  const body = await res.json().catch(() => ({ sites: [] }));
+  _webtrisSites = (body.sites || []).filter(s => s.Status === 'Active' && s.Latitude && s.Longitude);
   return { sites: _webtrisSites };
 }
 
