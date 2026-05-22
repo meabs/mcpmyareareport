@@ -703,7 +703,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     }
   }
 
-  const FUEL_LABELS = { E10: 'Unleaded E10', E5: 'Premium E5', B7_Standard: 'Diesel', B7_Premium: 'Premium Diesel', B10: 'HVO/B10', HVO: 'HVO' };
+  const FUEL_LABELS = { E10: 'Unleaded E10', E5: 'Premium E5', B7_Standard: 'Diesel', B7_Premium: 'Premium Diesel', B10: 'B10 Bio', HVO: 'HVO' };
 
   function renderFuelDetail(bodyId) {
     const el = document.getElementById(bodyId);

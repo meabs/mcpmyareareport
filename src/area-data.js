@@ -616,47 +616,80 @@ export async function getFuelPrices(lat, lng) {
   const token = await getFuelToken();
   if (!token) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
 
+  // POST with empty body fetches all current prices ("All" mode)
   const res = await fetch(`${FUEL_API_BASE}/pfs`, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(15000),
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+    signal: AbortSignal.timeout(20000),
   }).catch(() => null);
 
   if (!res?.ok) return { kind: 'area-fuel', stations: [], error: res?.status === 401 ? 'auth_failed' : 'unavailable' };
 
   const data = await res.json().catch(() => null);
-  const all = Array.isArray(data) ? data : (data?.stations || data?.pfs || []);
+  const all = Array.isArray(data) ? data : (data?.stations || data?.pfs || data?.forecourts || []);
 
-  // Filter to nearby stations (within 5 km)
+  // Resolve lat/lng from whichever location shape the API uses
+  function stationLatLng(s) {
+    const flat = parseFloat(s.latitude ?? s.lat ?? s.location?.latitude ?? s.geo_location?.latitude ?? s.address?.latitude);
+    const flng = parseFloat(s.longitude ?? s.lng ?? s.long ?? s.location?.longitude ?? s.geo_location?.longitude ?? s.address?.longitude);
+    return isNaN(flat) || isNaN(flng) ? null : { lat: flat, lng: flng };
+  }
+
+  // fuel_prices is an array: [{ fuel_type, price, price_last_updated, ... }]
+  function parsePrices(fuelPricesArr) {
+    if (!Array.isArray(fuelPricesArr)) return {};
+    const map = {};
+    for (const fp of fuelPricesArr) {
+      if (fp.fuel_type && fp.price != null) map[fp.fuel_type] = fp.price;
+    }
+    return map;
+  }
+
+  function latestUpdate(fuelPricesArr) {
+    if (!Array.isArray(fuelPricesArr)) return null;
+    return fuelPricesArr.reduce((latest, fp) => {
+      const ts = fp.price_last_updated || fp.price_change_effective_timestamp;
+      return (!latest || ts > latest) ? ts : latest;
+    }, null);
+  }
+
+  const SUPERMARKET_NAMES = ['TESCO', 'ASDA', 'SAINSBURY', 'MORRISONS', 'ALDI', 'LIDL', 'COSTCO'];
+
   const nearby = all
-    .filter(s => s.location?.latitude && s.location?.longitude)
-    .map(s => ({
-      ...s,
-      distKm: haversineKm(lat, lng, parseFloat(s.location.latitude), parseFloat(s.location.longitude)),
-    }))
-    .filter(s => s.distKm <= 20)
+    .map(s => {
+      const pos = stationLatLng(s);
+      if (!pos) return null;
+      return { ...s, _lat: pos.lat, _lng: pos.lng, distKm: haversineKm(lat, lng, pos.lat, pos.lng) };
+    })
+    .filter(s => s && s.distKm <= 20)
     .sort((a, b) => a.distKm - b.distKm)
     .slice(0, 20);
 
-  const fuelTypes = ['E10', 'E5', 'B7_Standard', 'B7_Premium'];
+  const fuelTypes = ['E10', 'E5', 'B7_Standard', 'B7_Premium', 'B10', 'HVO'];
 
-  const stations = nearby.map(s => ({
-    nodeId: s.node_id,
-    name: s.trading_name || s.brand_name || 'Unknown',
-    brand: s.brand_name,
-    postcode: s.location?.postcode,
-    lat: parseFloat(s.location.latitude),
-    lng: parseFloat(s.location.longitude),
-    distKm: parseFloat(s.distKm.toFixed(2)),
-    prices: Object.fromEntries(
-      fuelTypes
-        .filter(ft => s.fuel_prices?.[ft] != null)
-        .map(ft => [ft, Math.round(s.fuel_prices[ft] * 10) / 10])
-    ),
-    updatedAt: s.fuel_prices_last_updated || null,
-    isSupermarket: s.is_supermarket_service_station || false,
-  }));
+  const stations = nearby.map(s => {
+    const prices = parsePrices(s.fuel_prices);
+    const name = s.trading_name || s.brand_name || s.name || 'Unknown';
+    const isSupermarket = s.is_supermarket_service_station ||
+      SUPERMARKET_NAMES.some(sup => name.toUpperCase().includes(sup));
+    return {
+      nodeId: s.node_id,
+      name,
+      brand: s.brand_name || null,
+      postcode: s.location?.postcode || s.postcode || s.address?.postcode || null,
+      phone: s.public_phone_number || null,
+      lat: s._lat,
+      lng: s._lng,
+      distKm: parseFloat(s.distKm.toFixed(2)),
+      prices: Object.fromEntries(
+        fuelTypes.filter(ft => prices[ft] != null).map(ft => [ft, Math.round(prices[ft] * 10) / 10])
+      ),
+      updatedAt: latestUpdate(s.fuel_prices),
+      isSupermarket,
+    };
+  });
 
-  // Find cheapest per fuel type
   const cheapest = {};
   for (const ft of fuelTypes) {
     const withPrice = stations.filter(s => s.prices[ft] != null);
