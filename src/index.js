@@ -49,7 +49,7 @@ export async function startStreamableHttpServer(createMcpServer) {
       auth: { type: "none" },
       api: { type: "mcp", url: "https://mcp.myareareport.com/mcp" },
       logo_url: "https://mcp.myareareport.com/logo.png",
-      contact_email: "contact@myareareport.com",
+      contact_email: "garry@myareareport.com",
       legal_info_url: "https://mcp.myareareport.com/privacy",
     });
   });
@@ -103,7 +103,7 @@ export async function startStreamableHttpServer(createMcpServer) {
   <p>We do not store, retain, or process any user-submitted data beyond the immediate API request. Server access logs are automatically deleted after 30 days.</p>
 
   <h2>Your rights</h2>
-  <p>As we hold no personal data about you, there is nothing to access, correct, or delete. For questions, contact us at <a href="mailto:contact@myareareport.com">contact@myareareport.com</a>.</p>
+  <p>As we hold no personal data about you, there is nothing to access, correct, or delete. For questions, contact us at <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
 
   <h2>Changes</h2>
   <p>We may update this policy. The current version is always available at this URL.</p>
