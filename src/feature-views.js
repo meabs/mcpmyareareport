@@ -698,8 +698,8 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     await callServerTool("area-app-fuel", { postcode: state.area.postcode });
     document.getElementById("fuel-loading")?.classList.add("hidden");
     if (!state.fuelDetail) {
-      const el = document.getElementById("fuel-body");
-      if (el) el.innerHTML = `<div class="empty-state">Fuel price data unavailable for this area.</div>`;
+      state.fuelDetail = { kind: 'area-fuel', stations: [], error: 'unavailable' };
+      renderFuelDetail("fuel-body");
     }
   }
 
@@ -710,8 +710,11 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const data = state.fuelDetail;
     if (!el || !data) return;
 
-    if (data.error === 'credentials_missing') {
-      el.innerHTML = `<div class="empty-state">Fuel price data is not configured on this server.</div>`;
+    if (data.error) {
+      const msg = data.error === 'credentials_missing'
+        ? 'Fuel price data is not configured on this server.'
+        : 'Fuel price data is temporarily unavailable — the GOV.UK Fuel Finder API is not yet live. Check back soon.';
+      el.innerHTML = `<div class="empty-state">${msg}</div>`;
       notifyHostSize();
       return;
     }

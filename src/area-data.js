@@ -609,8 +609,12 @@ async function getFuelToken() {
 }
 
 export async function getFuelPrices(lat, lng) {
+  const clientId = process.env.FUEL_FINDER_CLIENT_ID;
+  const clientSecret = process.env.FUEL_FINDER_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return { kind: 'area-fuel', stations: [], error: 'credentials_missing' };
+
   const token = await getFuelToken();
-  if (!token) return { kind: 'area-fuel', stations: [], error: 'credentials_missing' };
+  if (!token) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
 
   const res = await fetch(`${FUEL_API_BASE}/pfs`, {
     headers: { Authorization: `Bearer ${token}` },
