@@ -654,6 +654,10 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
               </div>
               <div class="road-site-name">${s.name.replace(/^MIDAS site at /, '').replace(/; GPS Ref:.*$/, '')}</div>
               ${s.report ? `
+              <div class="road-site-meta">
+                ${s.report.level ? `<span class="traffic-level-badge" style="background:${s.report.level.color}1a;color:${s.report.level.color};border:1px solid ${s.report.level.color}40">${s.report.level.label}</span>` : ''}
+                <span class="road-data-note">avg. ${s.report.month} — historical</span>
+              </div>
               <div class="road-stats-row">
                 <div class="road-stat">
                   <div class="road-stat-value">${s.report.avgDailyFlow?.toLocaleString('en-GB') || '—'}</div>
@@ -669,7 +673,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
                 </div>
               </div>
               <div class="road-flow-bar-track">
-                <div class="road-flow-bar-fill" style="width:${Math.round((s.report.avgDailyFlow || 0) / maxFlow * 100)}%"></div>
+                <div class="road-flow-bar-fill" style="width:${Math.round((s.report.avgDailyFlow || 0) / maxFlow * 100)}%;background:${s.report.level?.color || 'var(--blue)'}"></div>
               </div>` : `<div class="road-no-data">No traffic data available for this site this month.</div>`}
             </div>
           `).join('')}
@@ -712,7 +716,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     }
 
     if (!data.stations?.length) {
-      el.innerHTML = `<div class="empty-state">No petrol stations found within 5 km of this postcode.</div>`;
+      el.innerHTML = `<div class="empty-state">No petrol stations found within 20 km of this postcode.</div>`;
       notifyHostSize();
       return;
     }
@@ -763,7 +767,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       <div class="section">
         <div class="section-header">
           <h2 class="section-title">All stations within 5 km</h2>
-          <span class="month-badge">${data.stations.length} stations</span>
+          <span class="month-badge">${data.stations.length} stations within 20 km</span>
         </div>
         <div class="section-body" style="padding:0;overflow-x:auto">
           <table class="fuel-table">

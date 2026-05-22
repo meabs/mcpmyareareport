@@ -209,7 +209,14 @@ function handleToolResult(result) {
 
   if (payload.kind === "area-property") {
     state.propertyDetail = payload;
+    if (payload.area && !state.area) { state.area = payload.area; }
     if (state.mode === "full") {
+      features?.showTab("property");
+      features?.renderPropertyDetail("property-body");
+    } else {
+      state.mode = "full";
+      showView("full");
+      updateHeader();
       features?.showTab("property");
       features?.renderPropertyDetail("property-body");
     }
@@ -219,7 +226,14 @@ function handleToolResult(result) {
 
   if (payload.kind === "area-roads") {
     state.roadsDetail = payload;
+    if (payload.area && !state.area) { state.area = payload.area; }
     if (state.mode === "full") {
+      features?.showTab("roads");
+      features?.renderRoadsDetail("roads-body");
+    } else {
+      state.mode = "full";
+      showView("full");
+      updateHeader();
       features?.showTab("roads");
       features?.renderRoadsDetail("roads-body");
     }
@@ -229,7 +243,14 @@ function handleToolResult(result) {
 
   if (payload.kind === "area-fuel") {
     state.fuelDetail = payload;
+    if (payload.area && !state.area) { state.area = payload.area; }
     if (state.mode === "full") {
+      features?.showTab("fuel");
+      features?.renderFuelDetail("fuel-body");
+    } else {
+      state.mode = "full";
+      showView("full");
+      updateHeader();
       features?.showTab("fuel");
       features?.renderFuelDetail("fuel-body");
     }

@@ -291,6 +291,10 @@ const OUT_ROADS = {
               avgDailyFlow:       { type: "integer" },
               avgLargeVehiclePct: { type: "number" },
               daysRecorded:       { type: "integer" },
+              level: {
+                type: ["object", "null"],
+                properties: { label: { type: "string" }, color: { type: "string" } },
+              },
             },
           },
         },
@@ -454,8 +458,8 @@ export function createServer() {
     {
       title: "MyAreaReport: Road Traffic",
       description:
-        "Shows National Highways traffic monitoring data for roads near a UK postcode — average daily traffic counts and heavy vehicle percentages from motorway and A-road sensors. " +
-        "Use when the user asks about traffic, congestion, road usage, or motorway data near an area.",
+        "Shows how busy the roads are near a UK postcode — average daily traffic counts, heavy vehicle percentages, and a traffic level indicator (Light/Moderate/Busy/Heavy/Very heavy) from National Highways motorway and A-road sensors. " +
+        "Use when the user asks how busy the roads are, about traffic levels, congestion, road usage, or motorway data near an area.",
       inputSchema: {
         postcode: z.string().describe("UK postcode"),
       },

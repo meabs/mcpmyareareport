@@ -1042,6 +1042,29 @@
   padding: 4px 0;
 }
 
+.road-site-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.traffic-level-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.road-data-note {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
 /* ── Approximate location notice ───────────────────────────────────── */
 .approximate-notice {
   display: flex;

@@ -149,6 +149,15 @@ function crimeVsAvg(total) {
   return Math.round(((total - NATIONAL_AVG_MONTHLY) / NATIONAL_AVG_MONTHLY) * 100);
 }
 
+function trafficLevel(avgDailyFlow) {
+  if (!avgDailyFlow) return null;
+  if (avgDailyFlow >= 70000) return { label: 'Very heavy', color: '#7f1d1d' };
+  if (avgDailyFlow >= 40000) return { label: 'Heavy',      color: '#dc2626' };
+  if (avgDailyFlow >= 15000) return { label: 'Busy',       color: '#f59e0b' };
+  if (avgDailyFlow >= 5000)  return { label: 'Moderate',   color: '#3b82f6' };
+  return                              { label: 'Light',     color: '#16a34a' };
+}
+
 function floodRisk(warnings, alerts) {
   if (warnings > 0) return 'high';
   if (alerts > 1) return 'medium';
@@ -516,7 +525,7 @@ async function fetchMonthlyReports(nearby, monthOffset) {
       if (!days.length) return { site: s, report: null };
       const avgFlow = Math.round(days.reduce((t, d) => t + parseInt(d.FlowValue), 0) / days.length);
       const avgLarge = parseFloat((days.reduce((t, d) => t + parseFloat(d.LargeVehiclePercentage || 0), 0) / days.length).toFixed(1));
-      return { site: s, report: { month: month.Month, avgDailyFlow: avgFlow, avgLargeVehiclePct: avgLarge, daysRecorded: days.length } };
+      return { site: s, report: { month: month.Month, avgDailyFlow: avgFlow, avgLargeVehiclePct: avgLarge, daysRecorded: days.length, level: trafficLevel(avgFlow) } };
     } catch { return { site: s, report: null }; }
   }));
 }
