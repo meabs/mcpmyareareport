@@ -847,7 +847,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       if (errEl) errEl.classList.add("hidden");
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Searching…"; }
 
-      const result = await app.callServerTool({ name: "area-app-search", arguments: { query: raw } }).catch(() => {
+      const result = await callServerTool("area-app-search", { query: raw }).catch(() => {
         if (errEl) { errEl.textContent = `Could not find "${raw}". Try a UK postcode (e.g. SW1A 2AA) or place name.`; errEl.classList.remove("hidden"); }
         return null;
       });
