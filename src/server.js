@@ -18,7 +18,11 @@ import {
   geocodePostcode,
   resolveInputToPostcode,
   formatToolResultText,
+  warmupCaches,
 } from "./area-data.js";
+
+// Pre-warm caches on startup (non-blocking)
+warmupCaches().catch(() => {});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -306,6 +310,23 @@ const OUT_ROADS = {
     reportMonth: { type: ["string", "null"] },
     note:        { type: "string" },
     error:       { type: "string", description: "Set when the upstream API failed, e.g. http_502" },
+    localRoads: {
+      type: "array",
+      description: "DfT annual count-point survey locations for Principal A-roads (local authority managed) near the postcode",
+      items: {
+        type: "object",
+        properties: {
+          id:      { type: "integer" },
+          road:    { type: "string" },
+          category:{ type: "string", description: "PA=Principal A-road, TM=Motorway, TA=Trunk A" },
+          from:    { type: "string" },
+          to:      { type: "string" },
+          distKm:  { type: "number" },
+          year:    { type: ["integer", "null"] },
+          linkKm:  { type: ["number", "null"] },
+        },
+      },
+    },
   },
 };
 

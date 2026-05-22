@@ -5,6 +5,7 @@ const POLICE_BASE = 'https://data.police.uk/api';
 const EA_BASE = 'https://environment.data.gov.uk/flood-monitoring';
 const LR_SPARQL = 'https://landregistry.data.gov.uk/landregistry/query';
 const WEBTRIS_BASE = 'https://webtris.highwaysengland.co.uk/api/v1.0';
+const DFT_API_BASE = 'https://roadtraffic.dft.gov.uk/api';
 const FUEL_AUTH_URL = 'https://www.fuel-finder.service.gov.uk/api/v1/oauth/generate_access_token';
 const FUEL_API_BASE = 'https://www.fuel-finder.service.gov.uk/api';
 
@@ -12,6 +13,10 @@ const FUEL_API_BASE = 'https://www.fuel-finder.service.gov.uk/api';
 let _policeLatestMonth = null;
 // Cache WebTRIS sites so we only fetch once per process
 let _webtrisSites = null;
+// DfT count-points cache (46k local road sensors, national coverage, TTL 24h)
+let _dftCountPoints = null;
+let _dftCountPointsExpiry = 0;
+let _dftLoadPromise = null;
 // Fuel Finder OAuth token cache
 let _fuelToken = null;
 let _fuelTokenExpiry = 0;
@@ -494,6 +499,74 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// ── DfT road count-points (local A-roads, national, annual AADF survey locations) ──
+
+async function loadDftCountPoints() {
+  if (_dftCountPoints && Date.now() < _dftCountPointsExpiry) return _dftCountPoints;
+  // deduplicate concurrent calls
+  if (_dftLoadPromise) return _dftLoadPromise;
+
+  _dftLoadPromise = (async () => {
+    try {
+      console.log('[dft-roads] Loading count-points database...');
+      // Fetch first page to get total pages
+      const first = await fetch(`${DFT_API_BASE}/count-points?per_page=250&page=1`, { signal: AbortSignal.timeout(15000) }).catch(() => null);
+      if (!first?.ok) return [];
+      const firstData = await first.json().catch(() => null);
+      if (!firstData?.data) return [];
+
+      const lastPage = firstData.last_page || 1;
+      const all = [...firstData.data];
+
+      // Fetch remaining pages in parallel chunks of 20
+      const CHUNK = 20;
+      for (let start = 2; start <= lastPage; start += CHUNK) {
+        const end = Math.min(start + CHUNK - 1, lastPage);
+        const pages = await Promise.all(
+          Array.from({ length: end - start + 1 }, (_, i) =>
+            fetch(`${DFT_API_BASE}/count-points?per_page=250&page=${start + i}`, { signal: AbortSignal.timeout(15000) })
+              .then(r => r.ok ? r.json() : null).catch(() => null)
+          )
+        );
+        for (const p of pages) if (p?.data) all.push(...p.data);
+      }
+
+      _dftCountPoints = all.map(r => ({
+        id: r.count_point_id,
+        road: r.road_name,
+        category: r.road_category, // PA=Principal A, TM=Motorway, TA=Trunk A
+        roadType: r.road_type,
+        from: r.start_junction_road_name || '',
+        to: r.end_junction_road_name || '',
+        lat: parseFloat(r.latitude),
+        lng: parseFloat(r.longitude),
+        year: r.aadf_year,
+        linkKm: parseFloat(r.link_length_km) || null,
+      })).filter(r => !isNaN(r.lat) && !isNaN(r.lng));
+
+      _dftCountPointsExpiry = Date.now() + 24 * 60 * 60 * 1000; // 24h
+      console.log(`[dft-roads] ${_dftCountPoints.length} count-points loaded`);
+    } catch (err) {
+      console.error('[dft-roads] Load failed:', err.message);
+      _dftCountPoints = [];
+    } finally {
+      _dftLoadPromise = null;
+    }
+    return _dftCountPoints || [];
+  })();
+
+  return _dftLoadPromise;
+}
+
+function getDftRoadsNear(lat, lng, radiusKm = 15) {
+  if (!_dftCountPoints?.length) return [];
+  return _dftCountPoints
+    .map(r => ({ ...r, distKm: haversineKm(lat, lng, r.lat, r.lng) }))
+    .filter(r => r.distKm <= radiusKm && r.category === 'PA') // PA = local A-roads not in WebTRIS
+    .sort((a, b) => a.distKm - b.distKm)
+    .slice(0, 8);
+}
+
 function fmtWebtrisDate(d) {
   const day = String(d.getDate()).padStart(2, '0');
   const mon = String(d.getMonth() + 1).padStart(2, '0');
@@ -562,8 +635,16 @@ export async function getHighwaysData(lat, lng) {
       .slice(0, 10);
   }
 
+  // Always fetch DfT local A-roads in parallel (cached after first load)
+  const dftPromise = loadDftCountPoints().then(() => getDftRoadsNear(lat, lng, 15));
+
   if (!nearby.length) {
-    return { kind: 'area-roads', sites: [], reportMonth: null, note: 'No National Highways monitoring sites found within 100 km. This area may not be covered by motorway sensors.' };
+    const localRoads = await dftPromise;
+    return {
+      kind: 'area-roads', sites: [], reportMonth: null,
+      localRoads,
+      note: 'No National Highways motorway sensors within 100 km. Showing local A-road network from DfT annual survey.',
+    };
   }
 
   // Try last 3 months until we find data (many sites have delayed or missing reports)
@@ -574,6 +655,7 @@ export async function getHighwaysData(lat, lng) {
   // Return only sites that have data, up to 6
   const withData = reports.filter(r => r.report);
   const finalReports = withData.length ? withData.slice(0, 6) : reports.slice(0, 6);
+  const localRoads = await dftPromise;
 
   return {
     kind: 'area-roads',
@@ -587,6 +669,7 @@ export async function getHighwaysData(lat, lng) {
       report: r.report,
     })),
     reportMonth: finalReports.find(r => r.report)?.report?.month || null,
+    localRoads,
   };
 }
 
@@ -791,4 +874,21 @@ export function formatToolResultText(kind, payload) {
     return lines.join('\n');
   }
   return '';
+}
+
+// ── Cache warmup (call on server start to avoid cold-start latency) ───────────
+
+export async function warmupCaches() {
+  // Fuel DB: ~3s cold load, cached 1h — pre-warm so first user call is instant
+  try {
+    const token = await getFuelToken();
+    if (token) {
+      console.log('[warmup] Pre-loading fuel station database...');
+      await loadFuelDb(token);
+    }
+  } catch (err) {
+    console.error('[warmup] Fuel pre-load failed:', err.message);
+  }
+  // DfT roads: ~10s cold load, cached 24h
+  loadDftCountPoints().catch(err => console.error('[warmup] DfT roads pre-load failed:', err.message));
 }

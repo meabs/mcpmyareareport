@@ -651,19 +651,24 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const data = state.roadsDetail;
     if (!el || !data) return;
 
-    if (!data.sites?.length) {
+    const hasWebTris = data.sites?.length > 0;
+    const hasLocal = data.localRoads?.length > 0;
+
+    if (!hasWebTris && !hasLocal) {
       const isError = Boolean(data.error);
-      el.innerHTML = `<div class="empty-state${isError ? ' empty-state-error' : ''}">${data.note || 'No National Highways monitoring sites found within 25 km.'}</div>`;
+      el.innerHTML = `<div class="empty-state${isError ? ' empty-state-error' : ''}">${data.note || 'No road monitoring sites found within 25 km.'}</div>`;
       notifyHostSize();
       return;
     }
 
-    const maxFlow = Math.max(...data.sites.filter(s => s.report?.avgDailyFlow).map(s => s.report.avgDailyFlow), 1);
+    const maxFlow = hasWebTris
+      ? Math.max(...data.sites.filter(s => s.report?.avgDailyFlow).map(s => s.report.avgDailyFlow), 1)
+      : 1;
 
-    el.innerHTML = `
+    const webTrisSection = hasWebTris ? `
       <div class="section">
         <div class="section-header">
-          <h2 class="section-title">Nearby road monitoring sites</h2>
+          <h2 class="section-title">Motorway & trunk A-road sensors</h2>
           ${data.reportMonth ? `<span class="month-badge">${data.reportMonth}</span>` : ''}
         </div>
         <div class="section-body" style="padding:0">
@@ -699,10 +704,38 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
             </div>
           `).join('')}
         </div>
-      </div>
+      </div>` : '';
 
+    const localRoadsSection = hasLocal ? `
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">Local A-road network</h2>
+          <span class="month-badge">DfT annual survey</span>
+        </div>
+        <div class="section-body" style="padding:0">
+          ${data.localRoads.map(r => `
+            <div class="road-site-card">
+              <div class="road-site-header">
+                <div class="road-site-desc" style="font-weight:700;font-size:0.9rem">${escHtml(r.road)}</div>
+                <span class="road-dist-pill">${r.distKm.toFixed(1)} km</span>
+              </div>
+              ${(r.from || r.to) ? `<div class="road-site-name">${escHtml(r.from)}${r.from && r.to ? ' → ' : ''}${escHtml(r.to)}</div>` : ''}
+              <div class="road-site-meta">
+                <span class="traffic-level-badge" style="background:var(--blue)1a;color:var(--blue);border:1px solid #3b82f640">Principal A-road</span>
+                ${r.year ? `<span class="road-data-note">survey year: ${r.year}</span>` : ''}
+                ${r.linkKm ? `<span class="road-data-note">${r.linkKm.toFixed(1)} km section</span>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : '';
+
+    el.innerHTML = `
+      ${webTrisSection}
+      ${localRoadsSection}
       <p style="font-size:0.7rem;color:var(--muted);padding:4px 0">
-        Source: National Highways WebTRIS · Motorway and major A-road sensors only. Data is monthly averages.
+        Sources: National Highways WebTRIS (motorway & trunk A-road sensors, monthly averages)
+        ${hasLocal ? '· DfT Road Traffic Statistics (local A-roads, annual count-point survey)' : ''}
       </p>
     `;
 
