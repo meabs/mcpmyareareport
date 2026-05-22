@@ -53,6 +53,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode, e.g. SW1A 1AA or CH1 1AA"),
       },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -77,6 +78,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode"),
       },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -101,6 +103,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode"),
       },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -125,6 +128,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode, e.g. SW1A 1AA — the outcode (district) is used for the property search"),
       },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -151,6 +155,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode"),
       },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -177,6 +182,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode"),
       },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
@@ -198,6 +204,7 @@ export function createServer() {
       title: "Area search",
       description: "Fetch area overview for a postcode or place name entered in the search form.",
       inputSchema: { query: z.string().describe("UK postcode or place name (e.g. 'Chester', 'SW1A 2AA')") },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ query }) => {
@@ -224,6 +231,7 @@ export function createServer() {
       title: "Load crime detail",
       description: "Fetch detailed crime data for the current area.",
       inputSchema: { postcode: z.string() },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
@@ -243,6 +251,7 @@ export function createServer() {
       title: "Load flood detail",
       description: "Fetch detailed flood data for the current area.",
       inputSchema: { postcode: z.string() },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
@@ -262,6 +271,7 @@ export function createServer() {
       title: "Load property prices",
       description: "Fetch Land Registry house price data for the current area.",
       inputSchema: { postcode: z.string() },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
@@ -282,6 +292,7 @@ export function createServer() {
       title: "Load fuel prices",
       description: "Fetch GOV.UK Fuel Finder prices for petrol stations near the current area.",
       inputSchema: { postcode: z.string() },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
@@ -303,6 +314,7 @@ export function createServer() {
       title: "Load road traffic data",
       description: "Fetch National Highways traffic monitoring data for the current area.",
       inputSchema: { postcode: z.string() },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
@@ -348,8 +360,6 @@ export function createServer() {
                 ],
                 resourceDomains: [
                   "https://tile.openstreetmap.org",
-                  "https://*.tile.openstreetmap.org",
-                  "https://unpkg.com",
                 ],
               },
             },
