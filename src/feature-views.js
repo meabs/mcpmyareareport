@@ -24,7 +24,7 @@ function getOrCreateMap(containerId, lat, lng, zoom = 14) {
   if (!el) return null;
   el.innerHTML = "";
   const map = L.map(containerId, { zoomControl: true, attributionControl: true });
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  L.tileLayer("/api/tiles/{z}/{x}/{y}", {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 18,
   }).addTo(map);

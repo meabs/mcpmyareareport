@@ -87,7 +87,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Resolves a postcode or place name to an area overview and returns the result to the embedded app without modifying state.",
+        "read_only_justification": "Resolves a postcode or place name to area metadata and returns a bootstrap payload for the embedded app without modifying state.",
         "open_world_justification": "Only reads from public APIs and app context and does not change any external public or third-party system.",
         "destructive_justification": "Does not delete, overwrite, or trigger irreversible behavior."
       }

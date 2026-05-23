@@ -55,6 +55,26 @@ test("UI resource declares a stable production widget domain and narrow CSP", as
   assert.equal(uiMeta.domain, "https://mcp.myareareport.com");
   assert.equal(resource.metadata._meta["openai/widgetDomain"], "https://mcp.myareareport.com");
   assert.deepEqual(uiMeta.csp.connectDomains, ["https://mcp.myareareport.com"]);
+  assert.deepEqual(uiMeta.csp.resourceDomains, []);
   assert.equal(uiMeta.csp.connectDomains.includes("http://localhost:3001"), false);
   assert.equal(uiMeta.csp.connectDomains.includes("https://data.police.uk"), false);
+});
+
+test("area-app-search metadata matches its bootstrap-only behavior", async (t) => {
+  delete process.env.FUEL_FINDER_CLIENT_ID;
+  delete process.env.FUEL_FINDER_CLIENT_SECRET;
+  t.mock.method(globalThis, "fetch", async (url) => {
+    if (String(url).includes("/count-points")) return Response.json({ data: [], last_page: 1 });
+    throw new Error(`Unexpected fetch during server import: ${url}`);
+  });
+
+  const { createServer } = await importFreshServer();
+  const server = createServer();
+  const tool = server._registeredTools["area-app-search"];
+
+  assert.ok(tool, "area-app-search should be registered");
+  assert.equal(
+    tool.description,
+    "Resolve a postcode or place name entered in the search form and return area metadata for app bootstrap.",
+  );
 });

@@ -104,9 +104,9 @@ export async function startStreamableHttpServer(createMcpServer) {
     <li><a href="https://landregistry.data.gov.uk">HM Land Registry</a> — house prices</li>
     <li><a href="https://www.developer.fuel-finder.service.gov.uk">GOV.UK Fuel Finder</a> — fuel prices</li>
     <li><a href="https://webtris.highwaysengland.co.uk">National Highways WebTRIS</a> — road traffic</li>
-    <li><a href="https://www.openstreetmap.org">OpenStreetMap</a> — map tiles</li>
+    <li><a href="https://www.openstreetmap.org">OpenStreetMap</a> — map tiles fetched server-side by MyAreaReport</li>
   </ul>
-  <p>All data returned is published under the Open Government Licence v3.0 and is available publicly. No personal data is sent to these APIs.</p>
+  <p>All data returned is published under the Open Government Licence v3.0 and is available publicly. When maps are shown, MyAreaReport fetches OpenStreetMap tiles from the server so your browser does not connect directly to OpenStreetMap.</p>
 
   <h2>Cookies and tracking</h2>
   <p>This service sets no cookies and uses no analytics or tracking technologies.</p>

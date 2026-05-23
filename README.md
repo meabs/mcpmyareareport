@@ -82,7 +82,7 @@ These tools are hidden from the model and are called by the embedded UI:
 
 | Tool | Description |
 |---|---|
-| `area-app-search` | Resolve a postcode, outcode or place name entered in the search form |
+| `area-app-search` | Resolve a postcode, outcode or place name and return area metadata for the search flow |
 | `area-app-crime` | Load the crime tab for the current area |
 | `area-app-flood` | Load the flood tab for the current area |
 | `area-app-property` | Load the property tab for the current area |

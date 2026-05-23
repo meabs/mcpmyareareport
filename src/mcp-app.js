@@ -106,6 +106,18 @@ function pushModelContext(eventName, payload) {
     const s = payload.sites.find(s => s.report);
     if (s) lines.push(`Traffic: ${s.description} — ${s.report.avgDailyFlow?.toLocaleString()} vehicles/day`);
   }
+  if (payload?.kind === "area-fuel") {
+    if (payload.error) {
+      lines.push(`Fuel: unavailable (${payload.error})`);
+    } else if (payload.cheapest) {
+      const cheapest = Object.entries(payload.cheapest)[0]?.[1];
+      if (cheapest) {
+        lines.push(`Fuel: cheapest nearby is ${cheapest.name} at ${cheapest.price}p/litre (${cheapest.distKm} km)`);
+      }
+    } else {
+      lines.push(`Fuel: ${payload.stations?.length ?? 0} nearby stations`);
+    }
+  }
 
   const text = `[MyAreaReport — ${eventName}]\n${lines.join('\n')}`;
   state.lastModelContext = { event: eventName, payload, text, at: new Date().toISOString() };
@@ -253,6 +265,7 @@ function handleToolResult(result) {
       features?.showTab("property");
       features?.renderPropertyDetail("property-body");
     }
+    pushModelContext("area-property", payload);
     bootstrapped = true;
     return true;
   }
@@ -270,6 +283,7 @@ function handleToolResult(result) {
       features?.showTab("roads");
       features?.renderRoadsDetail("roads-body");
     }
+    pushModelContext("area-roads", payload);
     bootstrapped = true;
     return true;
   }
@@ -287,6 +301,7 @@ function handleToolResult(result) {
       features?.showTab("fuel");
       features?.renderFuelDetail("fuel-body");
     }
+    pushModelContext("area-fuel", payload);
     bootstrapped = true;
     return true;
   }
