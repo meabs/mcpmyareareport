@@ -142,7 +142,7 @@ chmod +x scripts/deploy-vps.sh
 scripts/deploy-vps.sh
 ```
 
-That script drives [infra/docker-compose.yml](/Users/garry/code/street/mcp-app-demo/infra/docker-compose.yml:1), replaces old `infra-*` app containers, and runs only:
+That script drives `infra/docker-compose.yml`, replaces old `infra-*` app containers, and runs only:
 
 - `myareareport-mcp`
 - `myareareport-caddy`
