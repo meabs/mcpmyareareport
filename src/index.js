@@ -27,6 +27,18 @@ export async function startStreamableHttpServer(createMcpServer) {
 
   // ── Health check ─────────────────────────────────────────────────────────
   app.get("/health", (_req, res) => res.json({ status: "ok", service: "MyAreaReport MCP" }));
+  app.get("/ready", async (_req, res) => {
+    try {
+      await fs.access(path.resolve(__dirname, "..", "dist"));
+      res.json({
+        status: "ready",
+        service: "MyAreaReport MCP",
+        fuelConfigured: Boolean(process.env.FUEL_FINDER_CLIENT_ID && process.env.FUEL_FINDER_CLIENT_SECRET),
+      });
+    } catch {
+      res.status(503).json({ status: "not_ready", service: "MyAreaReport MCP", reason: "dist_missing" });
+    }
+  });
 
   // ── Logo ──────────────────────────────────────────────────────────────────
   app.get("/logo.png", async (_req, res) => {
@@ -124,7 +136,15 @@ export async function startStreamableHttpServer(createMcpServer) {
 
   // OSM tile proxy — served from localhost so it works within CSP connect-src
   app.get("/api/tiles/:z/:x/:y", async (req, res) => {
-    const { z, x, y } = req.params;
+    const z = Number(req.params.z);
+    const x = Number(req.params.x);
+    const y = Number(req.params.y);
+    const maxTile = 2 ** z;
+    if (!Number.isInteger(z) || !Number.isInteger(x) || !Number.isInteger(y) ||
+        z < 0 || z > 19 || x < 0 || y < 0 || x >= maxTile || y >= maxTile) {
+      res.status(400).json({ error: "invalid_tile" });
+      return;
+    }
     try {
       const upstream = await fetch(
         `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
@@ -149,7 +169,7 @@ export async function startStreamableHttpServer(createMcpServer) {
     const method = req.body?.method;
     const toolName = req.body?.params?.name;
     if (method === "tools/call") {
-      console.log(`[tool] ${toolName}`, JSON.stringify(req.body?.params?.arguments ?? {}));
+      console.log(`[tool] ${toolName}`);
     }
 
     const server = createMcpServer();

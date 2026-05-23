@@ -8,6 +8,7 @@ const WEBTRIS_BASE = 'https://webtris.highwaysengland.co.uk/api/v1.0';
 const DFT_API_BASE = 'https://roadtraffic.dft.gov.uk/api';
 const FUEL_AUTH_URL = 'https://www.fuel-finder.service.gov.uk/api/v1/oauth/generate_access_token';
 const FUEL_API_BASE = 'https://www.fuel-finder.service.gov.uk/api';
+const DEFAULT_TIMEOUT_MS = 10000;
 
 // Cache the available month so we only query it once per process
 let _policeLatestMonth = null;
@@ -20,6 +21,7 @@ let _dftLoadPromise = null;
 // Fuel Finder OAuth token cache
 let _fuelToken = null;
 let _fuelTokenExpiry = 0;
+let _fuelAuthError = null;
 // Fuel station database cache (location + prices joined, TTL 1 hour)
 let _fuelDb = null;
 let _fuelDbExpiry = 0;
@@ -28,7 +30,7 @@ let _fuelDbPromise = null;
 async function getLatestPoliceMonth() {
   if (_policeLatestMonth) return _policeLatestMonth;
   try {
-    const res = await fetch(`${POLICE_BASE}/crime-last-updated`);
+    const res = await fetch(`${POLICE_BASE}/crime-last-updated`, { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) });
     if (res.ok) {
       const { date } = await res.json();
       // date is "YYYY-MM-DD" — extract YYYY-MM
@@ -50,7 +52,7 @@ function monthOffset(base, offset) {
 
 export async function geocodePostcode(postcode) {
   const clean = encodeURIComponent(postcode.replace(/\s+/g, '').toUpperCase());
-  const res = await fetch(`${POSTCODES_BASE}/postcodes/${clean}`);
+  const res = await fetch(`${POSTCODES_BASE}/postcodes/${clean}`, { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`Postcode not found: ${postcode}`);
   const { result: r } = await res.json();
   return {
@@ -108,30 +110,30 @@ async function safeJson(res) {
 }
 
 async function fetchCrimes(lat, lng, month) {
-  const res = await fetch(`${POLICE_BASE}/crimes-street/all-crime?lat=${lat}&lng=${lng}&date=${month}`).catch(() => null);
+  const res = await fetch(`${POLICE_BASE}/crimes-street/all-crime?lat=${lat}&lng=${lng}&date=${month}`, { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) }).catch(() => null);
   return (res && await safeJson(res)) || [];
 }
 
 async function fetchStopSearch(lat, lng, month) {
-  const res = await fetch(`${POLICE_BASE}/stops-street?lat=${lat}&lng=${lng}&date=${month}`).catch(() => null);
+  const res = await fetch(`${POLICE_BASE}/stops-street?lat=${lat}&lng=${lng}&date=${month}`, { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) }).catch(() => null);
   return (res && await safeJson(res)) || [];
 }
 
 async function fetchFloodAlerts(county) {
   const q = county ? `?county=${encodeURIComponent(county)}` : '';
-  const res = await fetch(`${EA_BASE}/id/floods${q}`).catch(() => null);
+  const res = await fetch(`${EA_BASE}/id/floods${q}`, { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) }).catch(() => null);
   const data = (res && await safeJson(res));
   return data?.items || [];
 }
 
 async function fetchFloodStations(lat, lng) {
-  const res = await fetch(`${EA_BASE}/id/stations?lat=${lat}&long=${lng}&dist=12&_limit=8`).catch(() => null);
+  const res = await fetch(`${EA_BASE}/id/stations?lat=${lat}&long=${lng}&dist=12&_limit=8`, { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) }).catch(() => null);
   const data = (res && await safeJson(res));
   return data?.items || [];
 }
 
 async function fetchStationReading(stationRef) {
-  const res = await fetch(`${EA_BASE}/id/stations/${stationRef}/readings?latest`).catch(() => null);
+  const res = await fetch(`${EA_BASE}/id/stations/${stationRef}/readings?latest`, { signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) }).catch(() => null);
   const data = (res && await safeJson(res));
   const item = data?.items?.[0];
   if (!item) return null;
@@ -719,18 +721,20 @@ export async function getHighwaysData(lat, lng) {
 
 async function getFuelToken() {
   if (_fuelToken && Date.now() < _fuelTokenExpiry - 30000) return _fuelToken;
+  _fuelAuthError = null;
   const clientId = process.env.FUEL_FINDER_CLIENT_ID;
   const clientSecret = process.env.FUEL_FINDER_CLIENT_SECRET;
   if (!clientId || !clientSecret) return null;
 
   const res = await fetch(FUEL_AUTH_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret, scope: 'fuelfinder.read' }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
     signal: AbortSignal.timeout(10000),
   }).catch(err => { console.error('[fuel-auth] fetch error:', err.message); return null; });
 
   if (!res) { console.error('[fuel-auth] no response'); return null; }
+  if (res.status === 400 || res.status === 401) _fuelAuthError = 'auth_failed';
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     console.error(`[fuel-auth] HTTP ${res.status}:`, body.slice(0, 300));
@@ -746,6 +750,12 @@ async function getFuelToken() {
   return _fuelToken;
 }
 
+function unwrapFuelData(json) {
+  if (Array.isArray(json)) return json;
+  if (Array.isArray(json?.data)) return json.data;
+  return null;
+}
+
 async function fetchFuelBatches(path, token, maxBatches = 30) {
   const results = [];
   for (let batch = 1; batch <= maxBatches; batch++) {
@@ -753,8 +763,15 @@ async function fetchFuelBatches(path, token, maxBatches = 30) {
       headers: { Authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(15000),
     }).catch(() => null);
-    if (!res?.ok) break;
-    const data = await res.json().catch(() => null);
+    if (!res?.ok) {
+      if (res?.status && res.status !== 404) {
+        const body = await res.text().catch(() => '');
+        console.error(`[fuel-api] ${path} batch ${batch} HTTP ${res.status}:`, body.slice(0, 200));
+      }
+      break;
+    }
+    const json = await res.json().catch(() => null);
+    const data = unwrapFuelData(json);
     if (!Array.isArray(data) || data.length === 0) break;
     results.push(...data);
     if (data.length < 500) break; // last batch
@@ -773,6 +790,12 @@ async function loadFuelDb(token) {
         fetchFuelBatches('pfs', token),
         fetchFuelBatches('pfs/fuel-prices', token),
       ]);
+
+      if (!pfsData.length || !priceData.length) {
+        console.error(`[fuel] Empty upstream response: pfs=${pfsData.length}, prices=${priceData.length}`);
+        _fuelDb = null;
+        return _fuelDb;
+      }
 
       const locationMap = new Map(pfsData.map(s => [s.node_id, s]));
       const joined = [];
@@ -805,16 +828,28 @@ export async function getFuelPrices(lat, lng) {
   if (!clientId || !clientSecret) return { kind: 'area-fuel', stations: [], error: 'credentials_missing' };
 
   const token = await getFuelToken();
-  if (!token) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
+  if (!token) return { kind: 'area-fuel', stations: [], error: _fuelAuthError || 'unavailable' };
 
   const db = await loadFuelDb(token).catch(err => { console.error('[fuel-db]', err.message); return null; });
-  if (!db) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
+  if (!db?.length) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
+
+  const canonicalFuelType = (fuelType) => {
+    const key = String(fuelType || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+    const compact = key.replace(/_/g, '');
+    if (['E10', 'UNLEADED', 'PETROL', 'REGULAR_UNLEADED', 'STANDARD_UNLEADED'].includes(key)) return 'E10';
+    if (['E5', 'SUPER_UNLEADED', 'PREMIUM_UNLEADED', 'SUPER', 'PREMIUM_PETROL'].includes(key)) return 'E5';
+    if (['B7', 'B7_STANDARD', 'STANDARD_DIESEL', 'DIESEL'].includes(key) || compact === 'B7STANDARD') return 'B7_STANDARD';
+    if (['B7_PREMIUM', 'PREMIUM_DIESEL'].includes(key) || compact === 'B7PREMIUM') return 'B7_PREMIUM';
+    if (key === 'B10') return 'B10';
+    if (key === 'HVO') return 'HVO';
+    return key;
+  };
 
   function parsePrices(fuelPricesArr) {
     if (!Array.isArray(fuelPricesArr)) return {};
     const map = {};
     for (const fp of fuelPricesArr) {
-      if (fp.fuel_type && fp.price != null) map[fp.fuel_type] = fp.price;
+      if (fp.fuel_type && fp.price != null) map[canonicalFuelType(fp.fuel_type)] = Number(fp.price);
     }
     return map;
   }
@@ -923,7 +958,7 @@ export function formatToolResultText(kind, payload) {
     if (!stations.length) return 'No petrol stations found within 20 km.';
     const lines = [`Fuel prices — ${stations.length} stations within 5 km`];
     if (cheapest?.E10) lines.push(`Cheapest unleaded (E10): ${cheapest.E10.price}p — ${cheapest.E10.name} (${cheapest.E10.distKm} km)`);
-    if (cheapest?.B7_Standard) lines.push(`Cheapest diesel (B7): ${cheapest.B7_Standard.price}p — ${cheapest.B7_Standard.name} (${cheapest.B7_Standard.distKm} km)`);
+    if (cheapest?.B7_STANDARD) lines.push(`Cheapest diesel (B7): ${cheapest.B7_STANDARD.price}p — ${cheapest.B7_STANDARD.name} (${cheapest.B7_STANDARD.distKm} km)`);
     return lines.join('\n');
   }
   return '';

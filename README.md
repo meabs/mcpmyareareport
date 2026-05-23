@@ -1,6 +1,6 @@
 # MyAreaReport MCP App
 
-A UK area intelligence tool built with the [MCP Apps SDK](https://github.com/modelcontextprotocol/ext-apps). Runs as a rich interactive UI panel inside ChatGPT and Claude.ai, delivering real-time local data for any UK postcode.
+A UK area intelligence tool built with the [MCP Apps SDK](https://github.com/modelcontextprotocol/ext-apps). Runs as a rich interactive UI panel inside ChatGPT and Claude.ai, delivering the latest available official data for UK postcodes and places.
 
 ---
 
@@ -25,7 +25,6 @@ Enter a UK postcode and get a live area report covering:
 git clone https://github.com/meabs/mcpmyareareport.git
 cd mcpmyareareport
 npm install
-npm run build
 npm start
 ```
 
@@ -39,9 +38,11 @@ Create a `.env` file (never commit to git):
 FUEL_FINDER_CLIENT_ID=...
 FUEL_FINDER_CLIENT_SECRET=...
 PORT=3001
+MCP_APP_UI_DOMAIN=https://mcp.myareareport.com
 ```
 
 Fuel Finder credentials are obtained from the GOV.UK Fuel Finder API programme.
+Local `npm run dev`, `npm start`, and `npm run start:stdio` load `.env` automatically when it exists.
 
 ---
 
@@ -62,14 +63,31 @@ Fuel Finder credentials are obtained from the GOV.UK Fuel Finder API programme.
 
 ## MCP tools
 
+### Model-visible tools
+
+These tools can be selected by the assistant in normal chat:
+
 | Tool | Description |
 |---|---|
-| `area-app-search` | Geocode a postcode and return overview (crime + flood summary) |
-| `area-app-crime` | Detailed crime breakdown for a postcode |
-| `area-app-flood` | Active flood warnings and alerts near a postcode |
-| `area-app-property` | House price data for the outcode |
-| `area-app-roads` | Nearby traffic monitoring sites |
-| `area-app-fuel` | Petrol station prices within 20 km |
+| `area-search` | Opens the dashboard and returns a crime/flood overview for a UK postcode |
+| `area-crime` | Detailed crime categories, outcomes, trend and stop-and-search data |
+| `area-flood` | Active flood warnings, alerts and river station readings |
+| `area-property` | Recent Land Registry sales and price summaries for a postcode area |
+| `area-roads` | National Highways and DfT traffic monitoring summaries |
+| `area-fuel` | Nearby petrol and diesel prices from GOV.UK Fuel Finder |
+
+### App-only tools
+
+These tools are hidden from the model and are called by the embedded UI:
+
+| Tool | Description |
+|---|---|
+| `area-app-search` | Resolve a postcode, outcode or place name entered in the search form |
+| `area-app-crime` | Load the crime tab for the current area |
+| `area-app-flood` | Load the flood tab for the current area |
+| `area-app-property` | Load the property tab for the current area |
+| `area-app-roads` | Load the roads tab for the current area |
+| `area-app-fuel` | Load the fuel tab for the current area |
 
 ---
 
@@ -78,7 +96,7 @@ Fuel Finder credentials are obtained from the GOV.UK Fuel Finder API programme.
 ```bash
 npm run dev        # Vite dev server for the UI (hot reload)
 npm run build      # Production bundle → dist/src/mcp-app.html
-npm test           # Jest unit tests
+npm test           # Node test suite
 ```
 
 ---
@@ -87,7 +105,7 @@ npm test           # Jest unit tests
 
 ```
 AI assistant
-    │  calls tool (e.g. area-app-search "SW1A 2AA")
+    │  calls tool (e.g. area-search "SW1A 2AA")
     ▼
 MCP server  (src/server.js)
     │  fetches: Police API, Environment Agency, Land Registry,
@@ -123,9 +141,11 @@ docker run -p 3001:3001 --env-file .env myareareport
 
 | File | Purpose |
 |---|---|
-| `src/server.js` | MCP tool registrations and data fetching |
+| `src/server.js` | MCP tool/resource registrations, output schemas and UI metadata |
 | `src/area-data.js` | API calls — Police, EA Flood, Land Registry, Roads, Fuel Finder |
 | `src/mcp-app.js` | Client app — tool result routing, state, view switching |
 | `src/feature-views.js` | Per-tab render logic and UI wiring |
 | `src/mcp-app.html` | HTML shell |
 | `src/mcp-app.css` | Styles |
+| `chatgpt-app-submission.json` | Draft ChatGPT app submission metadata and test prompts |
+| `REVIEW_RECOMMENDATIONS.md` | Reliability, API readiness and day-one feature review |

@@ -1,15 +1,15 @@
 {
   "name": "mcp-app-demo",
   "version": "1.0.0",
-  "description": "MCP Apps demo for an embedded sales credit-card acquisition journey",
+  "description": "MyAreaReport MCP App for UK postcode intelligence in ChatGPT",
   "main": "src/index.js",
   "scripts": {
     "setup": "bash scripts/setup.sh",
     "build": "vite build",
-    "dev": "vite build --watch & node --watch src/index.js",
-    "start": "npm run build && node src/index.js",
-    "start:stdio": "npm run build && node src/index.js --stdio",
-    "start:cloud": "npm run build && (node src/index.js & cloudflared tunnel run 7518a5d5-2c06-4a62-85ef-8dece49b1c55)",
+    "dev": "vite build --watch & node --env-file-if-exists=.env --watch src/index.js",
+    "start": "npm run build && node --env-file-if-exists=.env src/index.js",
+    "start:stdio": "npm run build && node --env-file-if-exists=.env src/index.js --stdio",
+    "start:cloud": "npm run build && (node --env-file-if-exists=.env src/index.js & cloudflared tunnel run 7518a5d5-2c06-4a62-85ef-8dece49b1c55)",
     "test": "node --test"
   },
   "repository": {

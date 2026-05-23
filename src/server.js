@@ -102,8 +102,8 @@ const S_FUEL_STATION = {
       properties: {
         E10:        { type: "number" },
         E5:         { type: "number" },
-        B7_Standard:{ type: "number" },
-        B7_Premium: { type: "number" },
+        B7_STANDARD:{ type: "number" },
+        B7_PREMIUM: { type: "number" },
         B10:        { type: "number" },
         HVO:        { type: "number" },
       },
@@ -342,8 +342,8 @@ const OUT_FUEL = {
       properties: {
         E10:        S_CHEAPEST_ENTRY,
         E5:         S_CHEAPEST_ENTRY,
-        B7_Standard:S_CHEAPEST_ENTRY,
-        B7_Premium: S_CHEAPEST_ENTRY,
+        B7_STANDARD:S_CHEAPEST_ENTRY,
+        B7_PREMIUM: S_CHEAPEST_ENTRY,
       },
     },
     error: { type: "string", enum: ["credentials_missing", "auth_failed", "unavailable"] },
@@ -365,6 +365,79 @@ async function readBundledAppHtml() {
 }
 
 const HINTS = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
+const UI_DOMAIN = process.env.MCP_APP_UI_DOMAIN || "https://mcp.myareareport.com";
+const UI_CONNECT_DOMAINS = [...new Set(["https://mcp.myareareport.com", UI_DOMAIN])];
+const UI_RESOURCE_META = {
+  ui: {
+    domain: UI_DOMAIN,
+    csp: {
+      connectDomains: UI_CONNECT_DOMAINS,
+      resourceDomains: [
+        "https://tile.openstreetmap.org",
+      ],
+    },
+  },
+  "openai/widgetDomain": UI_DOMAIN,
+};
+
+const Z_AREA = z.object({
+  postcode: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  district: z.string(),
+}).passthrough();
+const Z_CRIME_SUMMARY = z.object({
+  total: z.number().int(),
+  vsAvg: z.number().int(),
+  categories: z.array(z.object({ id: z.string(), label: z.string(), count: z.number().int() }).passthrough()),
+}).passthrough();
+const Z_FLOOD_SUMMARY = z.object({
+  riskLevel: z.enum(["none", "low", "medium", "high"]),
+  warnings: z.number().int(),
+  alerts: z.number().int(),
+}).passthrough();
+
+const Z_OUT_OVERVIEW = z.object({
+  kind: z.literal("area-overview"),
+  area: Z_AREA,
+  month: z.string(),
+  crime: Z_CRIME_SUMMARY,
+  flood: Z_FLOOD_SUMMARY,
+}).passthrough();
+const Z_OUT_CRIME = z.object({
+  kind: z.literal("area-crime"),
+  area: Z_AREA,
+  month: z.string(),
+  crime: Z_CRIME_SUMMARY,
+}).passthrough();
+const Z_OUT_FLOOD = z.object({
+  kind: z.literal("area-flood"),
+  area: Z_AREA,
+  flood: Z_FLOOD_SUMMARY,
+}).passthrough();
+const Z_OUT_PROPERTY = z.object({
+  kind: z.literal("area-property"),
+  outcode: z.string(),
+  sales: z.array(z.object({ price: z.number().int(), date: z.string() }).passthrough()),
+  totalCount: z.number().int(),
+}).passthrough();
+const Z_OUT_ROADS = z.object({
+  kind: z.literal("area-roads"),
+  sites: z.array(z.object({ id: z.string() }).passthrough()),
+}).passthrough();
+const Z_OUT_FUEL = z.object({
+  kind: z.literal("area-fuel"),
+  stations: z.array(z.object({
+    nodeId: z.string(),
+    name: z.string(),
+    distKm: z.number(),
+    prices: z.record(z.string(), z.number()),
+  }).passthrough()),
+}).passthrough();
+const Z_OUT_LOADING = z.object({
+  kind: z.literal("area-loading"),
+  area: Z_AREA,
+}).passthrough();
 
 export function createServer() {
   const server = new McpServer({ name: "MyAreaReport", version: "1.0.0" });
@@ -382,6 +455,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode, e.g. SW1A 1AA or CH1 1AA"),
       },
+      outputSchema: Z_OUT_OVERVIEW,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
@@ -407,6 +481,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode"),
       },
+      outputSchema: Z_OUT_CRIME,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
@@ -432,6 +507,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode"),
       },
+      outputSchema: Z_OUT_FLOOD,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
@@ -457,6 +533,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode, e.g. SW1A 1AA — the outcode (district) is used for the property search"),
       },
+      outputSchema: Z_OUT_PROPERTY,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
@@ -484,6 +561,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode"),
       },
+      outputSchema: Z_OUT_ROADS,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
@@ -511,6 +589,7 @@ export function createServer() {
       inputSchema: {
         postcode: z.string().describe("UK postcode"),
       },
+      outputSchema: Z_OUT_FUEL,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
@@ -533,6 +612,7 @@ export function createServer() {
       title: "Area search",
       description: "Fetch area overview for a postcode or place name entered in the search form.",
       inputSchema: { query: z.string().describe("UK postcode or place name (e.g. 'Chester', 'SW1A 2AA')") },
+      outputSchema: Z_OUT_LOADING,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
@@ -560,6 +640,7 @@ export function createServer() {
       title: "Load crime detail",
       description: "Fetch detailed crime data for the current area.",
       inputSchema: { postcode: z.string() },
+      outputSchema: Z_OUT_CRIME,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
@@ -580,6 +661,7 @@ export function createServer() {
       title: "Load flood detail",
       description: "Fetch detailed flood data for the current area.",
       inputSchema: { postcode: z.string() },
+      outputSchema: Z_OUT_FLOOD,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
@@ -600,6 +682,7 @@ export function createServer() {
       title: "Load property prices",
       description: "Fetch Land Registry house price data for the current area.",
       inputSchema: { postcode: z.string() },
+      outputSchema: Z_OUT_PROPERTY,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
@@ -621,6 +704,7 @@ export function createServer() {
       title: "Load fuel prices",
       description: "Fetch GOV.UK Fuel Finder prices for petrol stations near the current area.",
       inputSchema: { postcode: z.string() },
+      outputSchema: Z_OUT_FUEL,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
@@ -643,6 +727,7 @@ export function createServer() {
       title: "Load road traffic data",
       description: "Fetch National Highways traffic monitoring data for the current area.",
       inputSchema: { postcode: z.string() },
+      outputSchema: Z_OUT_ROADS,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
@@ -665,6 +750,7 @@ export function createServer() {
     {
       mimeType: RESOURCE_MIME_TYPE,
       description: "MyAreaReport — UK area intelligence: crime, flood, and environment data from official government APIs.",
+      _meta: UI_RESOURCE_META,
     },
     async () => {
       const html = await readBundledAppHtml();
@@ -673,26 +759,7 @@ export function createServer() {
           uri: RESOURCE_URI,
           mimeType: RESOURCE_MIME_TYPE,
           text: html,
-          _meta: {
-            ui: {
-              csp: {
-                connectDomains: [
-                  "https://mcp.myareareport.com",
-                  "http://localhost:3001",
-                  "https://api.postcodes.io",
-                  "https://data.police.uk",
-                  "https://environment.data.gov.uk",
-                  "https://landregistry.data.gov.uk",
-                  "https://webtris.highwaysengland.co.uk",
-                  "https://www.fuel-finder.service.gov.uk",
-                  "https://tile.openstreetmap.org",
-                ],
-                resourceDomains: [
-                  "https://tile.openstreetmap.org",
-                ],
-              },
-            },
-          },
+          _meta: UI_RESOURCE_META,
         }],
       };
     },

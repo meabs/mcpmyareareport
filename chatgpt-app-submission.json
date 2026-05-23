@@ -1,0 +1,232 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "MyAreaReport",
+    "subtitle": "UK area intelligence",
+    "description": "MyAreaReport helps users explore UK postcode and place-based area intelligence inside ChatGPT. It retrieves official public data for crime, flood warnings, property prices, road traffic, and nearby fuel prices, then presents the results in a rich dashboard with deeper drill-down views.",
+    "category": "PRODUCTIVITY"
+  },
+  "tools": {
+    "area-search": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Retrieves public area overview data for a UK postcode without creating or updating any records.",
+        "open_world_justification": "Only reads from public government and mapping data sources and does not publish or send data to external user-facing systems.",
+        "destructive_justification": "Does not delete, overwrite, revoke, or perform any irreversible action."
+      }
+    },
+    "area-crime": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Fetches public Police UK crime and stop-and-search data for the requested postcode and returns analysis only.",
+        "open_world_justification": "Only reads from public APIs and does not create posts, messages, tickets, or other third-party state changes.",
+        "destructive_justification": "Does not remove or alter data and has no irreversible side effects."
+      }
+    },
+    "area-flood": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Retrieves flood warnings, alerts, and station readings for the requested area without modifying anything.",
+        "open_world_justification": "Only queries public Environment Agency data and does not write to public or third-party systems.",
+        "destructive_justification": "Does not delete, overwrite, or trigger any irreversible action."
+      }
+    },
+    "area-property": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Queries Land Registry price data and returns computed summaries for the postcode area without changing state.",
+        "open_world_justification": "Only reads public property sale data and does not publish or submit anything externally.",
+        "destructive_justification": "Does not delete, overwrite, or make irreversible changes."
+      }
+    },
+    "area-roads": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Fetches nearby National Highways traffic monitoring data and returns summaries only.",
+        "open_world_justification": "Only reads public transport data sources and does not create or update external system state.",
+        "destructive_justification": "Does not remove data or perform irreversible operations."
+      }
+    },
+    "area-fuel": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Retrieves nearby fuel prices from GOV.UK Fuel Finder and returns comparisons without mutating any records.",
+        "open_world_justification": "Only reads bounded fuel-price data and does not publish, send, or submit anything to third-party systems.",
+        "destructive_justification": "Does not delete, overwrite, or perform irreversible actions."
+      }
+    },
+    "area-app-search": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Resolves a postcode or place name to an area overview and returns the result to the embedded app without modifying state.",
+        "open_world_justification": "Only reads from public APIs and app context and does not change any external public or third-party system.",
+        "destructive_justification": "Does not delete, overwrite, or trigger irreversible behavior."
+      }
+    },
+    "area-app-crime": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Loads crime detail data for the current area in the embedded app without creating or updating records.",
+        "open_world_justification": "Only retrieves public crime data and does not publish or send changes to outside systems.",
+        "destructive_justification": "Does not delete, overwrite, or perform any irreversible operation."
+      }
+    },
+    "area-app-flood": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Loads flood detail data for the current area in the embedded app without changing external state.",
+        "open_world_justification": "Only retrieves public flood-monitoring data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, or make irreversible changes."
+      }
+    },
+    "area-app-property": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Loads Land Registry property data into the embedded app and returns summaries without mutating data.",
+        "open_world_justification": "Only reads public property data and does not publish or submit any external changes.",
+        "destructive_justification": "Does not delete, overwrite, or perform irreversible actions."
+      }
+    },
+    "area-app-fuel": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Loads nearby fuel-price data into the embedded app without creating or modifying records.",
+        "open_world_justification": "Only reads from GOV.UK Fuel Finder and does not send or publish external state changes.",
+        "destructive_justification": "Does not delete, overwrite, or trigger irreversible behavior."
+      }
+    },
+    "area-app-roads": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Loads nearby road traffic data into the embedded app and returns it without changing any records.",
+        "open_world_justification": "Only reads public traffic data and does not create or update third-party or public internet state.",
+        "destructive_justification": "Does not delete, overwrite, or perform irreversible actions."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Open the main dashboard for a full postcode.",
+      "user_prompt": "Show me an area report for SW1A 1AA.",
+      "file_attachment_urls": null,
+      "tools_triggered": "area-search",
+      "expected_output": "Returns an overview for the postcode with crime, flood, and area summary data and opens the rich dashboard.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Drill into crime analysis for a specific area.",
+      "user_prompt": "What is crime like around SW1A 1AA?",
+      "file_attachment_urls": null,
+      "tools_triggered": "area-crime",
+      "expected_output": "Returns a detailed crime breakdown with categories, outcomes, trend data, and stop-and-search totals.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Check active flood warnings and nearby monitoring stations.",
+      "user_prompt": "Is there any flood risk near YO1 9RD right now?",
+      "file_attachment_urls": null,
+      "tools_triggered": "area-flood",
+      "expected_output": "Returns current flood warnings or alerts, station readings, and a concise risk summary for the area.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Show recent property price information for a postcode area.",
+      "user_prompt": "What are house prices like around CH1 1AA?",
+      "file_attachment_urls": null,
+      "tools_triggered": "area-property",
+      "expected_output": "Returns average and median sale prices, recent sales, and price breakdowns by property type for the postcode area.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Show nearby traffic monitoring data.",
+      "user_prompt": "How busy are the roads near M1 1AE?",
+      "file_attachment_urls": null,
+      "tools_triggered": "area-roads",
+      "expected_output": "Returns nearby National Highways sensor sites with vehicle flow summaries and heavy vehicle percentages where available.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Compare nearby petrol and diesel prices.",
+      "user_prompt": "Find the cheapest fuel near BS1 4ST.",
+      "file_attachment_urls": null,
+      "tools_triggered": "area-fuel",
+      "expected_output": "Returns nearby stations within 20 km and highlights the cheapest available unleaded and diesel options when credentials are configured.",
+      "expected_output_url": null
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "Do not trigger for unrelated calendar planning.",
+      "user_prompt": "What meetings do I have tomorrow?",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked because calendar scheduling is outside its supported workflows.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger for requests outside the UK area-data scope.",
+      "user_prompt": "Show me crime rates in Paris.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked because it only supports UK postcode and place-based area intelligence.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger for unrelated transactional actions.",
+      "user_prompt": "Send this report to my team and email me a copy.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked because it has no messaging or email-sending capability.",
+      "expected_output_url": null
+    }
+  ]
+}
