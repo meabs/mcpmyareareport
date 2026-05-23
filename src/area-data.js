@@ -197,11 +197,12 @@ export async function getAreaReport(postcode) {
   const area = await geocodePostcode(postcode);
   const latest = await getLatestPoliceMonth();
 
-  const [crimes0, stopSearch0, floodAlerts, stations] = await Promise.all([
+  const [crimes0, stopSearch0, floodAlerts, stations, fuel] = await Promise.all([
     fetchCrimes(area.lat, area.lng, latest),
     fetchStopSearch(area.lat, area.lng, latest),
     fetchFloodAlerts(area.county),
     fetchFloodStations(area.lat, area.lng),
+    getFuelPrices(area.lat, area.lng).catch(() => ({ kind: 'area-fuel', stations: [], error: 'unavailable' })),
   ]);
 
   // Sparse-data fallback: try older months in parallel if latest has very few crimes
@@ -262,6 +263,7 @@ export async function getAreaReport(postcode) {
         lng: s.long,
       })),
     },
+    fuel,
   };
 }
 
@@ -741,6 +743,17 @@ async function getFuelToken() {
     return null;
   }
   const json = await res.json().catch(err => { console.error('[fuel-auth] json error:', err.message); return {}; });
+  const errorCode = Number(json?.error?.code ?? json?.data?.error?.code ?? json?.message?.code ?? NaN);
+  const errorMessage = String(
+    json?.message ??
+    json?.data?.message ??
+    json?.error?.message ??
+    json?.data?.error?.message ??
+    ''
+  ).toLowerCase();
+  if (errorCode === 400 || errorCode === 401 || errorMessage.includes('invalid client')) {
+    _fuelAuthError = 'auth_failed';
+  }
   // Response wrapped: { success, data: { access_token, expires_in, ... } }
   const payload = json.data ?? json;
   const { access_token, expires_in } = payload;
@@ -954,6 +967,7 @@ export function formatToolResultText(kind, payload) {
   if (kind === 'area-fuel') {
     const { stations, cheapest, error } = payload;
     if (error === 'credentials_missing') return 'Fuel price data: API credentials not configured.';
+    if (error === 'auth_failed') return 'Fuel price data: API credentials were rejected by Fuel Finder.';
     if (error === 'unavailable') return 'Fuel price data temporarily unavailable.';
     if (!stations.length) return 'No petrol stations found within 20 km.';
     const lines = [`Fuel prices — ${stations.length} stations within 5 km`];

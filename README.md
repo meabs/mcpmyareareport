@@ -135,6 +135,18 @@ docker build -t myareareport .
 docker run -p 3001:3001 --env-file .env myareareport
 ```
 
+For a clean VPS deploy with only the required production containers, use:
+
+```bash
+chmod +x scripts/deploy-vps.sh
+scripts/deploy-vps.sh
+```
+
+That script drives [infra/docker-compose.yml](/Users/garry/code/street/mcp-app-demo/infra/docker-compose.yml:1), replaces old `infra-*` app containers, and runs only:
+
+- `myareareport-mcp`
+- `myareareport-caddy`
+
 ---
 
 ## Key files

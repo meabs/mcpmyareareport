@@ -1,0 +1,37 @@
+services:
+  mcp:
+    container_name: myareareport-mcp
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: myareareport-mcp:latest
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      MCP_APP_UI_DOMAIN: ${MCP_APP_UI_DOMAIN:-https://mcp.myareareport.com}
+    expose:
+      - "3001"
+
+  caddy:
+    container_name: myareareport-caddy
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - mcp
+    environment:
+      DOMAIN: ${DOMAIN:-mcp.myareareport.com}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - myareareport_caddy_data:/data
+      - myareareport_caddy_config:/config
+
+volumes:
+  myareareport_caddy_data:
+  myareareport_caddy_config:

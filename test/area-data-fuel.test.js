@@ -94,6 +94,36 @@ test("fuel prices return auth_failed for rejected Fuel Finder credentials", asyn
   assert.deepEqual(result, { kind: "area-fuel", stations: [], error: "auth_failed" });
 });
 
+test("fuel prices return auth_failed when Fuel Finder reports invalid credentials in the JSON body", async (t) => {
+  withFuelEnv();
+
+  t.mock.method(globalThis, "fetch", async (url) => {
+    if (String(url).endsWith("/oauth/generate_access_token")) {
+      return Response.json({
+        success: false,
+        data: {
+          success: false,
+          data: null,
+          message: "Invalid client credentials",
+          error: { code: 401, details: null },
+        },
+        message: { code: 401, details: null },
+        error: { code: 401, details: { code: 401, details: null } },
+      });
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+
+  const { getFuelPrices, formatToolResultText } = await importFreshAreaData();
+  const result = await getFuelPrices(51.5, -0.12);
+
+  assert.deepEqual(result, { kind: "area-fuel", stations: [], error: "auth_failed" });
+  assert.equal(
+    formatToolResultText("area-fuel", result),
+    "Fuel price data: API credentials were rejected by Fuel Finder.",
+  );
+});
+
 test("fuel prices report unavailable when upstream fuel batches are empty", async (t) => {
   withFuelEnv();
 
@@ -113,3 +143,94 @@ test("fuel prices report unavailable when upstream fuel batches are empty", asyn
   assert.deepEqual(result, { kind: "area-fuel", stations: [], error: "unavailable" });
 });
 
+test("area overview includes fuel data so the widget can render fuel without a second round trip", async (t) => {
+  withFuelEnv();
+
+  t.mock.method(globalThis, "fetch", async (url, options = {}) => {
+    const href = String(url);
+
+    if (href.includes("api.postcodes.io/postcodes/")) {
+      return Response.json({
+        result: {
+          postcode: "M1 1AE",
+          latitude: 53.483487,
+          longitude: -2.231182,
+          admin_district: "Manchester",
+          admin_ward: "Piccadilly",
+          admin_county: "Manchester",
+          region: "North West",
+          country: "England",
+          pfa: "Greater Manchester",
+        },
+      });
+    }
+
+    if (href.endsWith("/crime-last-updated")) {
+      return Response.json({ date: "2026-03-31" });
+    }
+
+    if (href.includes("/crimes-street/all-crime?")) {
+      return Response.json(Array.from({ length: 10 }, (_, idx) => ({
+        category: idx < 5 ? "other-theft" : "violent-crime",
+        location: { latitude: "53.4831", longitude: "-2.2349" },
+      })));
+    }
+
+    if (href.includes("/stops-street?")) {
+      return Response.json([{ object_of_search: "Stolen goods" }]);
+    }
+
+    if (href.includes("/id/floods")) {
+      return Response.json({ items: [] });
+    }
+
+    if (href.includes("/id/stations?")) {
+      return Response.json({ items: [] });
+    }
+
+    if (href.endsWith("/oauth/generate_access_token")) {
+      assert.equal(options.headers["Content-Type"], "application/json");
+      return Response.json({ data: { access_token: "token", expires_in: 3600 } });
+    }
+
+    if (href.includes("/api/v1/pfs?batch-number=1")) {
+      return Response.json({
+        data: [{
+          node_id: "station-1",
+          trading_name: "Central Fuel",
+          brand_name: "TestBrand",
+          public_phone_number: "01234",
+          is_supermarket_service_station: false,
+          location: {
+            latitude: "53.4830",
+            longitude: "-2.2300",
+            postcode: "M1 1AE",
+          },
+        }],
+      });
+    }
+
+    if (href.includes("/api/v1/pfs/fuel-prices?batch-number=1")) {
+      return Response.json({
+        data: [{
+          node_id: "station-1",
+          fuel_prices: [
+            { fuel_type: "unleaded", price: "139.9", price_change_effective_timestamp: "2026-05-22T10:00:00Z" },
+            { fuel_type: "diesel", price: 146.5, price_change_effective_timestamp: "2026-05-22T10:05:00Z" },
+          ],
+        }],
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+
+  const { getAreaReport } = await importFreshAreaData();
+  const result = await getAreaReport("M1 1AE");
+
+  assert.equal(result.kind, "area-overview");
+  assert.equal(result.fuel?.kind, "area-fuel");
+  assert.equal(result.fuel?.error, undefined);
+  assert.equal(result.fuel?.stations.length, 1);
+  assert.equal(result.fuel?.cheapest?.E10?.name, "Central Fuel");
+});

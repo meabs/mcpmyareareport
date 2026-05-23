@@ -170,6 +170,7 @@ function handleToolResult(result) {
     Promise.all([
       callServerTool("area-app-crime", { postcode: state.area.postcode }),
       callServerTool("area-app-flood", { postcode: state.area.postcode }),
+      callServerTool("area-app-fuel", { postcode: state.area.postcode }),
     ]).catch(() => {});
     return true;
   }
@@ -179,13 +180,13 @@ function handleToolResult(result) {
     state.month   = payload.month;
     state.crime   = payload.crime;
     state.flood   = payload.flood;
+    state.fuelDetail = payload.fuel ?? null;
     state.mode    = "full";
     state.activeTab = "overview";
     state.crimeDetail = null;
     state.floodDetail = null;
     state.propertyDetail = null;
     state.roadsDetail = null;
-    state.fuelDetail = null;
     showView("full");
     updateHeader();
     features?.renderOverview();

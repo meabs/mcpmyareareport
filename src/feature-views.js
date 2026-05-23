@@ -767,6 +767,8 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     if (data.error) {
       const msg = data.error === 'credentials_missing'
         ? 'Fuel price data is not configured on this server.'
+        : data.error === 'auth_failed'
+        ? 'Fuel price data authentication failed on this server. Please check Fuel Finder credentials.'
         : 'Fuel price data is temporarily unavailable. Please try again shortly.';
       el.innerHTML = `<div class="empty-state">${msg}</div>`;
       notifyHostSize();

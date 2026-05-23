@@ -1,0 +1,32 @@
+{$DOMAIN} {
+    tls internal
+    encode gzip zstd
+
+    handle /mcp* {
+        reverse_proxy mcp:3001
+    }
+
+    handle /health {
+        reverse_proxy mcp:3001
+    }
+
+    handle /ready {
+        reverse_proxy mcp:3001
+    }
+
+    handle /logo.png {
+        reverse_proxy mcp:3001
+    }
+
+    handle /privacy {
+        reverse_proxy mcp:3001
+    }
+
+    handle /.well-known/* {
+        reverse_proxy mcp:3001
+    }
+
+    handle {
+        respond 404
+    }
+}

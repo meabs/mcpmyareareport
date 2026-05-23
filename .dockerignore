@@ -1,0 +1,9 @@
+.git
+.DS_Store
+.env
+node_modules
+dist
+memory
+.claude
+progress.md
+cost.md
