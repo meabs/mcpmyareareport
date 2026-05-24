@@ -55,7 +55,7 @@ test("UI resource declares a stable production widget domain and narrow CSP", as
   assert.equal(uiMeta.domain, "https://mcp.myareareport.com");
   assert.equal(resource.metadata._meta["openai/widgetDomain"], "https://mcp.myareareport.com");
   assert.deepEqual(uiMeta.csp.connectDomains, ["https://mcp.myareareport.com"]);
-  assert.deepEqual(uiMeta.csp.resourceDomains, []);
+  assert.deepEqual(uiMeta.csp.resourceDomains, ["https://mcp.myareareport.com"]);
   assert.equal(uiMeta.csp.connectDomains.includes("http://localhost:3001"), false);
   assert.equal(uiMeta.csp.connectDomains.includes("https://data.police.uk"), false);
 });

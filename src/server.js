@@ -388,12 +388,13 @@ async function readBundledAppHtml() {
 const HINTS = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 const UI_DOMAIN = process.env.MCP_APP_UI_DOMAIN || "https://mcp.myareareport.com";
 const UI_CONNECT_DOMAINS = [...new Set(["https://mcp.myareareport.com", UI_DOMAIN])];
+const UI_RESOURCE_DOMAINS = [...new Set(["https://mcp.myareareport.com", UI_DOMAIN])];
 const UI_RESOURCE_META = {
   ui: {
     domain: UI_DOMAIN,
     csp: {
       connectDomains: UI_CONNECT_DOMAINS,
-      resourceDomains: [],
+      resourceDomains: UI_RESOURCE_DOMAINS,
     },
   },
   "openai/widgetDomain": UI_DOMAIN,
