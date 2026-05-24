@@ -15,6 +15,14 @@ function escHtml(str) {
 // Map instances keyed by container id
 const maps = {};
 
+function getTileUrlTemplate() {
+  const localOrigins = /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
+  const origin = window.location?.origin || "";
+  const host = window.location?.host || "";
+  if (localOrigins.test(host)) return `${origin}/api/tiles/{z}/{x}/{y}`;
+  return "https://mcp.myareareport.com/api/tiles/{z}/{x}/{y}";
+}
+
 function getOrCreateMap(containerId, lat, lng, zoom = 14) {
   if (maps[containerId]) {
     maps[containerId].setView([lat, lng], zoom);
@@ -24,7 +32,7 @@ function getOrCreateMap(containerId, lat, lng, zoom = 14) {
   if (!el) return null;
   el.innerHTML = "";
   const map = L.map(containerId, { zoomControl: true, attributionControl: true });
-  L.tileLayer("/api/tiles/{z}/{x}/{y}", {
+  L.tileLayer(getTileUrlTemplate(), {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 18,
   }).addTo(map);
