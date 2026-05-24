@@ -124,9 +124,11 @@ const S_CHEAPEST_ENTRY = {
 
 const S_FUEL_SUMMARY = {
   type: "object",
-  required: ["kind", "stations"],
+  required: ["kind", "status", "stations", "cheapest"],
   properties: {
     kind:     { type: "string", const: "area-fuel" },
+    status:   { type: "string", enum: ["ok", "no_results", "unavailable"] },
+    reason:   { type: "string", enum: ["credentials_missing", "auth_failed", "upstream_unavailable", "no_sites_in_radius"] },
     area:     S_AREA,
     stations: { type: "array", items: S_FUEL_STATION },
     cheapest: {
@@ -138,7 +140,7 @@ const S_FUEL_SUMMARY = {
         B7_PREMIUM:  S_CHEAPEST_ENTRY,
       },
     },
-    error: { type: "string", enum: ["credentials_missing", "auth_failed", "unavailable"] },
+    error: { type: "string", enum: ["credentials_missing", "auth_failed", "upstream_unavailable", "no_sites_in_radius"] },
   },
 };
 
@@ -353,9 +355,11 @@ const OUT_ROADS = {
 
 const OUT_FUEL = {
   type: "object",
-  required: ["kind", "stations"],
+  required: ["kind", "status", "stations", "cheapest"],
   properties: {
     kind:     { type: "string", const: "area-fuel" },
+    status:   { type: "string", enum: ["ok", "no_results", "unavailable"] },
+    reason:   { type: "string", enum: ["credentials_missing", "auth_failed", "upstream_unavailable", "no_sites_in_radius"] },
     area:     S_AREA,
     stations: { type: "array", items: S_FUEL_STATION },
     cheapest: {
@@ -367,7 +371,7 @@ const OUT_FUEL = {
         B7_PREMIUM: S_CHEAPEST_ENTRY,
       },
     },
-    error: { type: "string", enum: ["credentials_missing", "auth_failed", "unavailable"] },
+    error: { type: "string", enum: ["credentials_missing", "auth_failed", "upstream_unavailable", "no_sites_in_radius"] },
   },
 };
 
@@ -418,11 +422,18 @@ const Z_FLOOD_SUMMARY = z.object({
 }).passthrough();
 const Z_FUEL_SUMMARY = z.object({
   kind: z.literal("area-fuel"),
+  status: z.enum(["ok", "no_results", "unavailable"]),
+  reason: z.enum(["credentials_missing", "auth_failed", "upstream_unavailable", "no_sites_in_radius"]).optional(),
   stations: z.array(z.object({
     nodeId: z.string(),
     name: z.string(),
     distKm: z.number(),
     prices: z.record(z.string(), z.number()),
+  }).passthrough()),
+  cheapest: z.record(z.string(), z.object({
+    name: z.string(),
+    price: z.number(),
+    distKm: z.number(),
   }).passthrough()),
 }).passthrough();
 

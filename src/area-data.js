@@ -202,7 +202,7 @@ export async function getAreaReport(postcode) {
     fetchStopSearch(area.lat, area.lng, latest),
     fetchFloodAlerts(area.county),
     fetchFloodStations(area.lat, area.lng),
-    getFuelPrices(area.lat, area.lng).catch(() => ({ kind: 'area-fuel', stations: [], error: 'unavailable' })),
+    getFuelPrices(area.lat, area.lng).catch(() => fuelPayload('unavailable', 'upstream_unavailable')),
   ]);
 
   // Sparse-data fallback: try older months in parallel if latest has very few crimes
@@ -733,16 +733,25 @@ async function getFuelToken() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
     signal: AbortSignal.timeout(10000),
-  }).catch(err => { console.error('[fuel-auth] fetch error:', err.message); return null; });
+  }).catch(err => {
+    _fuelAuthError = 'upstream_unavailable';
+    console.error('[fuel-auth] fetch error:', err.message);
+    return null;
+  });
 
   if (!res) { console.error('[fuel-auth] no response'); return null; }
   if (res.status === 400 || res.status === 401) _fuelAuthError = 'auth_failed';
+  else if (!res.ok) _fuelAuthError = 'upstream_unavailable';
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     console.error(`[fuel-auth] HTTP ${res.status}:`, body.slice(0, 300));
     return null;
   }
-  const json = await res.json().catch(err => { console.error('[fuel-auth] json error:', err.message); return {}; });
+  const json = await res.json().catch(err => {
+    _fuelAuthError = 'auth_failed';
+    console.error('[fuel-auth] json error:', err.message);
+    return {};
+  });
   const errorCode = Number(json?.error?.code ?? json?.data?.error?.code ?? json?.message?.code ?? NaN);
   const errorMessage = String(
     json?.message ??
@@ -757,7 +766,11 @@ async function getFuelToken() {
   // Response wrapped: { success, data: { access_token, expires_in, ... } }
   const payload = json.data ?? json;
   const { access_token, expires_in } = payload;
-  if (!access_token) { console.error('[fuel-auth] no access_token:', JSON.stringify(json).slice(0, 200)); return null; }
+  if (!access_token) {
+    _fuelAuthError = _fuelAuthError || 'auth_failed';
+    console.error('[fuel-auth] no access_token:', JSON.stringify(json).slice(0, 200));
+    return null;
+  }
   _fuelToken = access_token;
   _fuelTokenExpiry = Date.now() + (expires_in || 3600) * 1000;
   return _fuelToken;
@@ -835,16 +848,28 @@ async function loadFuelDb(token) {
   return _fuelDbPromise;
 }
 
+function fuelPayload(status, reason, stations = [], cheapest = {}) {
+  const payload = { kind: 'area-fuel', status, stations, cheapest };
+  if (reason) {
+    payload.reason = reason;
+    payload.error = reason;
+  }
+  return payload;
+}
+
 export async function getFuelPrices(lat, lng) {
   const clientId = process.env.FUEL_FINDER_CLIENT_ID;
   const clientSecret = process.env.FUEL_FINDER_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return { kind: 'area-fuel', stations: [], error: 'credentials_missing' };
+  if (!clientId || !clientSecret) return fuelPayload('unavailable', 'credentials_missing');
 
   const token = await getFuelToken();
-  if (!token) return { kind: 'area-fuel', stations: [], error: _fuelAuthError || 'unavailable' };
+  if (!token) {
+    const reason = _fuelAuthError === 'auth_failed' ? 'auth_failed' : 'upstream_unavailable';
+    return fuelPayload('unavailable', reason);
+  }
 
   const db = await loadFuelDb(token).catch(err => { console.error('[fuel-db]', err.message); return null; });
-  if (!db?.length) return { kind: 'area-fuel', stations: [], error: 'unavailable' };
+  if (!db?.length) return fuelPayload('unavailable', 'upstream_unavailable');
 
   const canonicalFuelType = (fuelType) => {
     const key = String(fuelType || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
@@ -915,7 +940,21 @@ export async function getFuelPrices(lat, lng) {
     }
   }
 
-  return { kind: 'area-fuel', stations, cheapest };
+  if (!stations.length) return fuelPayload('no_results', 'no_sites_in_radius');
+
+  return fuelPayload('ok', undefined, stations, cheapest);
+}
+
+function fuelStatusLine(fuel) {
+  const status = fuel?.status ?? (fuel?.error ? 'unavailable' : 'ok');
+  const reason = fuel?.reason ?? fuel?.error;
+  if (status === 'unavailable') {
+    if (reason === 'credentials_missing') return 'Fuel: API credentials not configured.';
+    if (reason === 'auth_failed') return 'Fuel: API credentials were rejected by Fuel Finder.';
+    return 'Fuel: data temporarily unavailable.';
+  }
+  if (status === 'no_results') return 'Fuel: no petrol stations found within 20 km.';
+  return `Fuel: ${fuel?.stations?.length ?? 0} stations within 20 km.`;
 }
 
 export function formatToolResultText(kind, payload) {
@@ -925,6 +964,7 @@ export function formatToolResultText(kind, payload) {
       `MyAreaReport — ${area.postcode} (${area.district}) · ${month}`,
       `Crime: ${crime.total} incidents · ${crime.vsAvg >= 0 ? '+' : ''}${crime.vsAvg}% vs E&W avg`,
       `Flood: ${flood.warnings} warnings, ${flood.alerts} alerts`,
+      fuelStatusLine(payload.fuel),
       `Top crimes: ${crime.categories.slice(0, 3).map(c => `${c.label} (${c.count})`).join(', ')}`,
     ];
     if (area.isApproximate) lines.push(`Note: Results use nearest postcode for ${area.placeName}.`);
@@ -965,12 +1005,16 @@ export function formatToolResultText(kind, payload) {
     ].join('\n');
   }
   if (kind === 'area-fuel') {
-    const { stations, cheapest, error } = payload;
-    if (error === 'credentials_missing') return 'Fuel price data: API credentials not configured.';
-    if (error === 'auth_failed') return 'Fuel price data: API credentials were rejected by Fuel Finder.';
-    if (error === 'unavailable') return 'Fuel price data temporarily unavailable.';
-    if (!stations.length) return 'No petrol stations found within 20 km.';
-    const lines = [`Fuel prices — ${stations.length} stations within 5 km`];
+    const { stations = [], cheapest } = payload;
+    const status = payload.status ?? (payload.error ? 'unavailable' : 'ok');
+    const reason = payload.reason ?? payload.error;
+    if (status === 'unavailable') {
+      if (reason === 'credentials_missing') return 'Fuel price data: API credentials not configured.';
+      if (reason === 'auth_failed') return 'Fuel price data: API credentials were rejected by Fuel Finder.';
+      return 'Fuel price data temporarily unavailable.';
+    }
+    if (status === 'no_results') return 'No petrol stations found within 20 km.';
+    const lines = [`Fuel prices — ${stations.length} stations within 20 km`];
     if (cheapest?.E10) lines.push(`Cheapest unleaded (E10): ${cheapest.E10.price}p — ${cheapest.E10.name} (${cheapest.E10.distKm} km)`);
     if (cheapest?.B7_STANDARD) lines.push(`Cheapest diesel (B7): ${cheapest.B7_STANDARD.price}p — ${cheapest.B7_STANDARD.name} (${cheapest.B7_STANDARD.distKm} km)`);
     return lines.join('\n');

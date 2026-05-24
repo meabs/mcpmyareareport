@@ -752,7 +752,14 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     await callServerTool("area-app-fuel", { postcode: state.area.postcode });
     document.getElementById("fuel-loading")?.classList.add("hidden");
     if (!state.fuelDetail) {
-      state.fuelDetail = { kind: 'area-fuel', stations: [], error: 'unavailable' };
+      state.fuelDetail = {
+        kind: 'area-fuel',
+        status: 'unavailable',
+        reason: 'upstream_unavailable',
+        stations: [],
+        cheapest: {},
+        error: 'upstream_unavailable',
+      };
       renderFuelDetail("fuel-body");
     }
   }
@@ -764,10 +771,13 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const data = state.fuelDetail;
     if (!el || !data) return;
 
-    if (data.error) {
-      const msg = data.error === 'credentials_missing'
+    const status = data.status ?? (data.error ? 'unavailable' : 'ok');
+    const reason = data.reason ?? data.error;
+
+    if (status === 'unavailable') {
+      const msg = reason === 'credentials_missing'
         ? 'Fuel price data is not configured on this server.'
-        : data.error === 'auth_failed'
+        : reason === 'auth_failed'
         ? 'Fuel price data authentication failed on this server. Please check Fuel Finder credentials.'
         : 'Fuel price data is temporarily unavailable. Please try again shortly.';
       el.innerHTML = `<div class="empty-state">${msg}</div>`;
@@ -775,7 +785,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       return;
     }
 
-    if (!data.stations?.length) {
+    if (status === 'no_results' || !data.stations?.length) {
       el.innerHTML = `<div class="empty-state">No petrol stations found within 20 km of this postcode.</div>`;
       notifyHostSize();
       return;

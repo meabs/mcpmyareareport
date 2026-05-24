@@ -12,6 +12,11 @@ function withFuelEnv() {
   process.env.FUEL_FINDER_CLIENT_SECRET = "test-client-secret";
 }
 
+function withoutFuelEnv() {
+  delete process.env.FUEL_FINDER_CLIENT_ID;
+  delete process.env.FUEL_FINDER_CLIENT_SECRET;
+}
+
 test("fuel prices load from wrapped Fuel Finder responses and canonicalise fuel keys", async (t) => {
   withFuelEnv();
 
@@ -68,6 +73,7 @@ test("fuel prices load from wrapped Fuel Finder responses and canonicalise fuel 
   const result = await getFuelPrices(51.5, -0.12);
 
   assert.equal(result.kind, "area-fuel");
+  assert.equal(result.status, "ok");
   assert.equal(result.error, undefined);
   assert.equal(result.stations.length, 1);
   assert.equal(result.stations[0].prices.E10, 139.9);
@@ -91,7 +97,14 @@ test("fuel prices return auth_failed for rejected Fuel Finder credentials", asyn
   const { getFuelPrices } = await importFreshAreaData();
   const result = await getFuelPrices(51.5, -0.12);
 
-  assert.deepEqual(result, { kind: "area-fuel", stations: [], error: "auth_failed" });
+  assert.deepEqual(result, {
+    kind: "area-fuel",
+    status: "unavailable",
+    reason: "auth_failed",
+    stations: [],
+    cheapest: {},
+    error: "auth_failed",
+  });
 });
 
 test("fuel prices return auth_failed when Fuel Finder reports invalid credentials in the JSON body", async (t) => {
@@ -117,7 +130,14 @@ test("fuel prices return auth_failed when Fuel Finder reports invalid credential
   const { getFuelPrices, formatToolResultText } = await importFreshAreaData();
   const result = await getFuelPrices(51.5, -0.12);
 
-  assert.deepEqual(result, { kind: "area-fuel", stations: [], error: "auth_failed" });
+  assert.deepEqual(result, {
+    kind: "area-fuel",
+    status: "unavailable",
+    reason: "auth_failed",
+    stations: [],
+    cheapest: {},
+    error: "auth_failed",
+  });
   assert.equal(
     formatToolResultText("area-fuel", result),
     "Fuel price data: API credentials were rejected by Fuel Finder.",
@@ -140,7 +160,84 @@ test("fuel prices report unavailable when upstream fuel batches are empty", asyn
   const { getFuelPrices } = await importFreshAreaData();
   const result = await getFuelPrices(51.5, -0.12);
 
-  assert.deepEqual(result, { kind: "area-fuel", stations: [], error: "unavailable" });
+  assert.deepEqual(result, {
+    kind: "area-fuel",
+    status: "unavailable",
+    reason: "upstream_unavailable",
+    stations: [],
+    cheapest: {},
+    error: "upstream_unavailable",
+  });
+});
+
+test("fuel prices return credentials_missing when Fuel Finder env is absent", async () => {
+  withoutFuelEnv();
+
+  const { getFuelPrices } = await importFreshAreaData();
+  const result = await getFuelPrices(51.5, -0.12);
+
+  assert.deepEqual(result, {
+    kind: "area-fuel",
+    status: "unavailable",
+    reason: "credentials_missing",
+    stations: [],
+    cheapest: {},
+    error: "credentials_missing",
+  });
+});
+
+test("fuel prices return auth_failed when auth response JSON is invalid", async (t) => {
+  withFuelEnv();
+
+  t.mock.method(globalThis, "fetch", async (url) => {
+    if (String(url).endsWith("/oauth/generate_access_token")) {
+      return new Response("{", { status: 200 });
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+
+  const { getFuelPrices } = await importFreshAreaData();
+  const result = await getFuelPrices(51.5, -0.12);
+
+  assert.equal(result.status, "unavailable");
+  assert.equal(result.reason, "auth_failed");
+  assert.equal(result.error, "auth_failed");
+});
+
+test("fuel prices return no_results when no station is within radius", async (t) => {
+  withFuelEnv();
+
+  t.mock.method(globalThis, "fetch", async (url) => {
+    if (String(url).endsWith("/oauth/generate_access_token")) {
+      return Response.json({ data: { access_token: "token", expires_in: 3600 } });
+    }
+    if (String(url).includes("/api/v1/pfs?batch-number=1")) {
+      return Response.json({ data: [{
+        node_id: "station-1",
+        trading_name: "Remote Fuel",
+        location: { latitude: "55.9533", longitude: "-3.1883", postcode: "EH1 1AA" },
+      }] });
+    }
+    if (String(url).includes("/api/v1/pfs/fuel-prices?batch-number=1")) {
+      return Response.json({ data: [{
+        node_id: "station-1",
+        fuel_prices: [{ fuel_type: "unleaded", price: 139.9 }],
+      }] });
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+
+  const { getFuelPrices } = await importFreshAreaData();
+  const result = await getFuelPrices(51.5, -0.12);
+
+  assert.deepEqual(result, {
+    kind: "area-fuel",
+    status: "no_results",
+    reason: "no_sites_in_radius",
+    stations: [],
+    cheapest: {},
+    error: "no_sites_in_radius",
+  });
 });
 
 test("area overview includes fuel data so the widget can render fuel without a second round trip", async (t) => {
@@ -230,6 +327,7 @@ test("area overview includes fuel data so the widget can render fuel without a s
 
   assert.equal(result.kind, "area-overview");
   assert.equal(result.fuel?.kind, "area-fuel");
+  assert.equal(result.fuel?.status, "ok");
   assert.equal(result.fuel?.error, undefined);
   assert.equal(result.fuel?.stations.length, 1);
   assert.equal(result.fuel?.cheapest?.E10?.name, "Central Fuel");

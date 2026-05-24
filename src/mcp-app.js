@@ -4,6 +4,7 @@ import {
   applyHostFonts,
   applyHostStyleVariables,
 } from "@modelcontextprotocol/ext-apps";
+import { shouldUseDemoFallback } from "./bootstrap-policy.js";
 import { createFeatureViews } from "./feature-views.js";
 import "./global.css";
 import "./mcp-app.css";
@@ -107,8 +108,12 @@ function pushModelContext(eventName, payload) {
     if (s) lines.push(`Traffic: ${s.description} — ${s.report.avgDailyFlow?.toLocaleString()} vehicles/day`);
   }
   if (payload?.kind === "area-fuel") {
-    if (payload.error) {
-      lines.push(`Fuel: unavailable (${payload.error})`);
+    const status = payload.status ?? (payload.error ? "unavailable" : "ok");
+    const reason = payload.reason ?? payload.error;
+    if (status === "unavailable") {
+      lines.push(`Fuel: unavailable${reason ? ` (${reason})` : ""}`);
+    } else if (status === "no_results") {
+      lines.push(`Fuel: no stations found within radius${reason ? ` (${reason})` : ""}`);
     } else if (payload.cheapest) {
       const cheapest = Object.entries(payload.cheapest)[0]?.[1];
       if (cheapest) {
@@ -373,10 +378,10 @@ function notifyHostSize() {
 // ─── Bootstrap fallback ───────────────────────────────────────────────────────
 
 async function bootstrapFromFallback() {
-  if (bootstrapped) return true;
+  if (!shouldUseDemoFallback({ bootstrapped, demoModeEnabled })) return bootstrapped;
   const urls = [
-    "https://mcp.myareareport.com/api/area",
-    "http://localhost:3001/api/area",
+    "https://mcp.myareareport.com/api/area?postcode=SW1A%202AA",
+    "http://localhost:3001/api/area?postcode=SW1A%202AA",
   ];
   for (const url of urls) {
     try {
