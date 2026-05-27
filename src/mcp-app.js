@@ -32,14 +32,31 @@ const appRoot = document.getElementById("app-root");
 
 // ─── App instance ─────────────────────────────────────────────────────────────
 
-const app = new App({ name: "MyAreaReport", version: "1.0.0" });
+const app = new App(
+  { name: "MyAreaReport", version: "1.0.0" },
+  { availableDisplayModes: ["inline", "fullscreen"] },
+);
 let features;
 let demoModeEnabled = false;
 let bootstrapped = false;
+let currentDisplayMode = "inline";
+
+function updateDisplayModeButton() {
+  const btn = document.getElementById("expand-btn");
+  if (!btn) return;
+  const isFullscreen = currentDisplayMode === "fullscreen";
+  btn.textContent = isFullscreen ? "⤡" : "⤢";
+  btn.title = isFullscreen ? "Exit fullscreen" : "Expand to fullscreen";
+  btn.setAttribute("aria-label", btn.title);
+}
 
 // ─── Host context ─────────────────────────────────────────────────────────────
 
 function applyHostContext(ctx) {
+  if (ctx.displayMode) {
+    currentDisplayMode = ctx.displayMode;
+    updateDisplayModeButton();
+  }
   if (ctx.theme) applyDocumentTheme(ctx.theme);
   if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
   if (ctx.styles?.css?.fonts) applyHostFonts(ctx.styles.css.fonts);
@@ -411,7 +428,16 @@ function wireGlobalNav() {
 
     const expandBtn = document.getElementById("expand-btn");
     if (e.target === expandBtn) {
-      app.requestDisplayMode({ mode: "fullscreen" }).catch(() => {});
+      const targetMode = currentDisplayMode === "fullscreen" ? "inline" : "fullscreen";
+      app.requestDisplayMode({ mode: targetMode })
+        .then(result => {
+          if (result?.mode) {
+            currentDisplayMode = result.mode;
+            updateDisplayModeButton();
+            notifyHostSize();
+          }
+        })
+        .catch(() => {});
     }
 
     const newSearchBtn = document.getElementById("new-search-btn");
