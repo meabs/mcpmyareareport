@@ -817,16 +817,16 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const rows = data.stations.map(s => {
       const prices = available.map(ft =>
         s.prices[ft] != null
-          ? `<td class="fuel-price-cell">${s.prices[ft]}p</td>`
-          : `<td class="fuel-price-cell fuel-price-na">—</td>`
+          ? `<td class="fuel-price-cell" data-label="${FUEL_LABELS[ft] || ft}">${s.prices[ft]}p</td>`
+          : `<td class="fuel-price-cell fuel-price-na" data-label="${FUEL_LABELS[ft] || ft}">—</td>`
       ).join('');
       return `
         <tr class="fuel-station-row">
-          <td class="fuel-station-name">
+          <td class="fuel-station-name" data-label="Station">
             ${escHtml(s.name)}
             ${s.isSupermarket ? '<span class="fuel-badge">Supermarket</span>' : ''}
           </td>
-          <td class="fuel-dist">${s.distKm} km</td>
+          <td class="fuel-dist" data-label="Distance">${s.distKm} km</td>
           ${prices}
         </tr>
       `;

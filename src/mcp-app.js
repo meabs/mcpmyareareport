@@ -62,9 +62,10 @@ function applyHostContext(ctx) {
   if (ctx.styles?.css?.fonts) applyHostFonts(ctx.styles.css.fonts);
   if (ctx.safeAreaInsets && appRoot) {
     const { top, right, bottom, left } = ctx.safeAreaInsets;
+    appRoot.style.setProperty("--host-safe-bottom", `${bottom}px`);
     appRoot.style.paddingTop    = `${top + 8}px`;
     appRoot.style.paddingRight  = `${right + 8}px`;
-    appRoot.style.paddingBottom = `${bottom + 8}px`;
+    appRoot.style.paddingBottom = `calc(${bottom + 8}px + var(--composer-reserve, 0px))`;
     appRoot.style.paddingLeft   = `${left + 8}px`;
   }
 }

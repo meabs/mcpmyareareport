@@ -21,6 +21,8 @@
   --radius-sm:  6px;
   --shadow:     0 4px 16px rgba(12, 35, 64, 0.10);
   --shadow-sm:  0 2px 6px rgba(12, 35, 64, 0.08);
+  --composer-reserve: 24px;
+  --host-safe-bottom: 0px;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────── */
@@ -30,6 +32,8 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   background: var(--bg);
   min-height: 100vh;
+  overflow-x: hidden;
+  padding-bottom: var(--composer-reserve);
 }
 
 .hidden { display: none !important; }
@@ -242,6 +246,7 @@
   align-items: center;
   gap: 12px;
   color: #fff;
+  min-width: 0;
 }
 
 .header-brand {
@@ -333,7 +338,14 @@
   display: flex;
   border-bottom: 1px solid var(--border);
   padding: 0 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
 }
+
+.tab-nav::-webkit-scrollbar { display: none; }
 
 .tab-btn {
   padding: 11px 16px;
@@ -347,6 +359,9 @@
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: color 0.12s;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  white-space: nowrap;
 }
 
 .tab-btn:hover { color: var(--navy); }
@@ -492,6 +507,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .section-title {
@@ -499,6 +516,7 @@
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--text);
+  min-width: 0;
 }
 
 .section-body { padding: 14px 16px; }
@@ -513,7 +531,7 @@
 
 .crime-bar-item {
   display: grid;
-  grid-template-columns: 160px 1fr 42px;
+  grid-template-columns: minmax(120px, 160px) minmax(60px, 1fr) max-content;
   align-items: center;
   gap: 8px;
   font-size: 0.78rem;
@@ -544,6 +562,7 @@
   color: var(--muted);
   font-weight: 600;
   font-size: 0.76rem;
+  min-width: max-content;
 }
 
 /* ── Trend mini chart ──────────────────────────────────────────────── */
@@ -1131,11 +1150,12 @@
 }
 
 .fuel-cheapest-card {
-  background: var(--surface);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
   text-align: center;
+  min-width: 0;
 }
 
 .fuel-cheapest-label {
@@ -1149,7 +1169,7 @@
 .fuel-cheapest-price {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--navy);
   line-height: 1.1;
 }
 
@@ -1193,6 +1213,7 @@
 .fuel-station-name {
   padding: 8px 10px;
   font-weight: 500;
+  min-width: 160px;
 }
 
 .fuel-dist {
@@ -1224,23 +1245,179 @@
 
 /* ── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
+  :root { --composer-reserve: 132px; }
+
+  .app-shell {
+    width: 100%;
+    max-width: none;
+  }
+
+  .app-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .brand-mark-sm {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+  }
+
+  .header-app-name { display: none; }
+  .header-brand { flex-shrink: 1; min-width: 0; }
+
+  .header-area {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .header-postcode {
+    font-size: 0.82rem;
+    padding: 3px 9px;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-district { display: none; }
+
+  .header-search-btn,
+  .expand-btn {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 4px;
+  }
+
+  .tab-nav {
+    padding: 0 10px;
+    box-shadow: inset -28px 0 22px -24px rgba(12,35,64,0.5);
+  }
+
+  .tab-btn {
+    padding: 11px 13px;
+    font-size: 0.82rem;
+  }
+
+  .tab-panel,
+  .panel-body {
+    padding: 12px;
+    gap: 12px;
+  }
+
   .stat-row { grid-template-columns: repeat(2, 1fr); }
-  .crime-bar-item { grid-template-columns: 120px 1fr 36px; }
+  .crime-bar-item { grid-template-columns: minmax(96px, 120px) minmax(54px, 1fr) max-content; }
   .map-container { height: 280px; }
   .price-summary-row { grid-template-columns: 1fr 1fr; }
   .sales-header-row,
   .sales-row { grid-template-columns: 80px 80px 1fr 60px; }
   .sales-tenure { display: none; }
   .road-stats-row { grid-template-columns: 1fr 1fr; }
+
+  .fuel-cheapest-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px;
+  }
+
+  .fuel-cheapest-card { padding: 10px; }
+  .fuel-cheapest-label { font-size: 0.66rem; }
+  .fuel-cheapest-price { font-size: 1.38rem; }
+  .fuel-cheapest-station { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+  .fuel-table,
+  .fuel-table tbody,
+  .fuel-station-row,
+  .fuel-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .fuel-table thead { display: none; }
+
+  .fuel-station-row {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .fuel-station-name,
+  .fuel-dist,
+  .fuel-price-cell {
+    min-width: 0;
+    padding: 5px 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: right;
+  }
+
+  .fuel-station-name {
+    display: block;
+    text-align: left;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.25;
+  }
+
+  .fuel-dist::before,
+  .fuel-price-cell::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .fuel-badge {
+    margin-left: 0;
+    margin-top: 4px;
+  }
+
+  .model-context-panel {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--host-safe-bottom) + 64px);
+    width: auto;
+    max-height: 178px;
+  }
+
+  .mc-pre {
+    max-height: 124px;
+    font-size: 0.64rem;
+    line-height: 1.35;
+  }
+
+  .demo-toolbar {
+    max-width: calc(100vw - 24px);
+    overflow-x: auto;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .demo-toolbar::-webkit-scrollbar { display: none; }
+  .demo-btn { padding: 6px 11px; }
 }
 
 @media (max-width: 420px) {
+  .app-header { padding: 9px 10px; }
+  .header-postcode { max-width: 116px; }
+  .header-actions { gap: 2px; }
+
   .stat-row { grid-template-columns: 1fr 1fr; }
-  .crime-bar-item { grid-template-columns: 100px 1fr 32px; }
-  .tab-btn { padding: 10px 8px; font-size: 0.76rem; }
+  .crime-bar-item { grid-template-columns: minmax(82px, 100px) minmax(44px, 1fr) max-content; gap: 6px; }
+  .crime-bar-label { font-size: 0.74rem; }
+  .crime-bar-count { font-size: 0.7rem; }
+  .tab-btn { padding: 10px 11px; font-size: 0.78rem; }
   .price-summary-row { grid-template-columns: 1fr 1fr; }
+  .price-summary-card { padding: 10px 8px; }
+  .price-summary-value { font-size: 1rem; }
   .sales-header-row,
   .sales-row { grid-template-columns: 70px 70px 1fr; }
   .sales-price { display: none; }
   .road-stats-row { grid-template-columns: 1fr 1fr; }
+
+  .fuel-cheapest-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fuel-cheapest-label { min-height: 2.4em; }
+  .fuel-cheapest-price { font-size: 1.28rem; }
 }
