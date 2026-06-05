@@ -52,7 +52,7 @@ test("UI resource declares a stable production widget domain and narrow CSP", as
   assert.ok(resource, "UI resource should be registered");
   const uiMeta = resource.metadata._meta.ui;
 
-  assert.equal(uiMeta.domain, "https://mcp.myareareport.com");
+  assert.equal(uiMeta.domain, "5c127fc74b2b03a8b72db007a2e65334.claudemcpcontent.com");
   assert.equal(resource.metadata._meta["openai/widgetDomain"], "https://mcp.myareareport.com");
   assert.deepEqual(uiMeta.csp.connectDomains, ["https://mcp.myareareport.com"]);
   assert.deepEqual(uiMeta.csp.resourceDomains, ["https://mcp.myareareport.com"]);

@@ -4,6 +4,7 @@ import {
   RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -390,18 +391,22 @@ async function readBundledAppHtml() {
 }
 
 const HINTS = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
-const UI_DOMAIN = process.env.MCP_APP_UI_DOMAIN || "https://mcp.myareareport.com";
-const UI_CONNECT_DOMAINS = [...new Set(["https://mcp.myareareport.com", UI_DOMAIN])];
-const UI_RESOURCE_DOMAINS = [...new Set(["https://mcp.myareareport.com", UI_DOMAIN])];
+const PUBLIC_UI_DOMAIN = process.env.MCP_APP_UI_DOMAIN || "https://mcp.myareareport.com";
+const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "https://mcp.myareareport.com/mcp";
+const CLAUDE_UI_DOMAIN =
+  process.env.MCP_APP_CLAUDE_UI_DOMAIN ||
+  `${createHash("sha256").update(MCP_SERVER_URL).digest("hex").slice(0, 32)}.claudemcpcontent.com`;
+const UI_CONNECT_DOMAINS = [...new Set(["https://mcp.myareareport.com", PUBLIC_UI_DOMAIN])];
+const UI_RESOURCE_DOMAINS = [...new Set(["https://mcp.myareareport.com", PUBLIC_UI_DOMAIN])];
 const UI_RESOURCE_META = {
   ui: {
-    domain: UI_DOMAIN,
+    domain: CLAUDE_UI_DOMAIN,
     csp: {
       connectDomains: UI_CONNECT_DOMAINS,
       resourceDomains: UI_RESOURCE_DOMAINS,
     },
   },
-  "openai/widgetDomain": UI_DOMAIN,
+  "openai/widgetDomain": PUBLIC_UI_DOMAIN,
 };
 
 const Z_AREA = z.object({
