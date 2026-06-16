@@ -65,7 +65,7 @@ function applyHostContext(ctx) {
     appRoot.style.setProperty("--host-safe-bottom", `${bottom}px`);
     appRoot.style.paddingTop    = `${top + 8}px`;
     appRoot.style.paddingRight  = `${right + 8}px`;
-    appRoot.style.paddingBottom = `calc(${bottom + 8}px + var(--composer-reserve, 0px))`;
+    appRoot.style.paddingBottom = `${bottom + 8}px`;
     appRoot.style.paddingLeft   = `${left + 8}px`;
   }
 }
@@ -383,12 +383,10 @@ function wireDemoToolbar() {
 
 function notifyHostSize() {
   try {
-    const height = Math.ceil(Math.max(
-      document.documentElement.scrollHeight,
-      document.body.scrollHeight,
-      appRoot?.scrollHeight ?? 0,
-      280,
-    ));
+    const contentBottom = appRoot
+      ? appRoot.getBoundingClientRect().bottom + window.scrollY
+      : document.body.scrollHeight;
+    const height = Math.ceil(Math.max(contentBottom, 180));
     app.sendSizeChanged({ width: Math.ceil(document.documentElement.offsetWidth || 360), height });
   } catch { /* host not ready */ }
 }
