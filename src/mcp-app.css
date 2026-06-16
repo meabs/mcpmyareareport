@@ -97,7 +97,7 @@
 
 /* ── Search view ───────────────────────────────────────────────────── */
 .search-panel {
-  max-width: 520px;
+  width: min(520px, calc(100% - 24px));
   margin: 40px auto;
   padding: 32px 28px;
   background: var(--card);
@@ -157,6 +157,7 @@
 
 .search-input {
   flex: 1;
+  min-width: 0;
   padding: 11px 14px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
@@ -368,7 +369,12 @@
 .tab-btn.active { color: var(--navy); border-bottom-color: var(--blue); }
 
 /* ── Tab panels ────────────────────────────────────────────────────── */
-.tab-panel { padding: 16px; display: grid; gap: 14px; }
+.tab-panel {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
 
 .tab-loading {
   display: flex;
@@ -421,7 +427,7 @@
 /* ── Stat row ──────────────────────────────────────────────────────── */
 .stat-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -435,6 +441,7 @@
   gap: 4px;
   cursor: pointer;
   transition: border-color 0.12s, box-shadow 0.12s;
+  min-width: 0;
 }
 
 .stat-card:hover { border-color: var(--blue-mid); box-shadow: var(--shadow); }
@@ -458,11 +465,13 @@
   font-weight: 800;
   color: var(--text);
   line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .stat-card-sub {
   font-size: 0.72rem;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 /* ── Risk badge ────────────────────────────────────────────────────── */
@@ -498,6 +507,7 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  min-width: 0;
 }
 
 .section-header {
@@ -519,7 +529,10 @@
   min-width: 0;
 }
 
-.section-body { padding: 14px 16px; }
+.section-body {
+  padding: 14px 16px;
+  min-width: 0;
+}
 
 .section-meta {
   font-size: 0.72rem;
@@ -574,6 +587,7 @@
 }
 
 .trend-bar-wrap {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -598,6 +612,9 @@
   color: var(--muted);
   text-align: center;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .trend-count {
@@ -616,6 +633,7 @@
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   background: var(--card);
+  min-width: 0;
 }
 
 .flood-item-header {
@@ -624,6 +642,7 @@
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 4px;
+  min-width: 0;
 }
 
 .flood-item-name {
@@ -632,6 +651,8 @@
   color: var(--text);
   margin: 0;
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .flood-severity-pill {
@@ -648,6 +669,7 @@
   color: var(--muted);
   margin: 0;
   line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 /* ── Station readings ──────────────────────────────────────────────── */
@@ -665,6 +687,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--card);
+  min-width: 0;
 }
 
 .station-info { flex: 1; min-width: 0; }
@@ -680,17 +703,20 @@
 .station-river {
   font-size: 0.72rem;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .station-reading {
   text-align: right;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .station-value {
   font-size: 0.92rem;
   font-weight: 800;
   color: var(--blue);
+  overflow-wrap: anywhere;
 }
 
 .station-unit {
@@ -703,7 +729,7 @@
 
 .outcome-item {
   display: grid;
-  grid-template-columns: 1fr 48px;
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
   gap: 8px;
   font-size: 0.78rem;
@@ -791,6 +817,7 @@
   padding: 16px;
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 /* ── Empty / info states ───────────────────────────────────────────── */
@@ -929,7 +956,7 @@
 /* ── Property price summary ────────────────────────────────────────── */
 .price-summary-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 4px;
 }
@@ -939,6 +966,7 @@
   border-radius: var(--radius-sm);
   padding: 12px;
   text-align: center;
+  min-width: 0;
 }
 
 .price-summary-label {
@@ -954,14 +982,18 @@
   font-size: 1.1rem;
   font-weight: 800;
   color: var(--navy);
+  overflow-wrap: anywhere;
 }
 
 /* ── Sales table ───────────────────────────────────────────────────── */
-.sales-table { font-size: 0.75rem; }
+.sales-table {
+  font-size: 0.75rem;
+  min-width: 0;
+}
 
 .sales-header-row {
   display: grid;
-  grid-template-columns: 90px 90px 1fr 72px 80px;
+  grid-template-columns: 90px 90px minmax(0, 1fr) 72px 80px;
   gap: 6px;
   padding: 8px 16px;
   background: var(--bg);
@@ -975,7 +1007,7 @@
 
 .sales-row {
   display: grid;
-  grid-template-columns: 90px 90px 1fr 72px 80px;
+  grid-template-columns: 90px 90px minmax(0, 1fr) 72px 80px;
   gap: 6px;
   padding: 8px 16px;
   border-bottom: 1px solid var(--border);
@@ -987,6 +1019,14 @@
 .sales-pc { font-weight: 600; color: var(--text); }
 .sales-date { color: var(--muted); }
 .sales-type { color: var(--text); }
+.sales-pc,
+.sales-date,
+.sales-type,
+.sales-tenure,
+.sales-price {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .sales-tenure { color: var(--muted); font-size: 0.7rem; }
 .sales-price { font-weight: 700; color: var(--blue); text-align: right; }
 
@@ -994,6 +1034,7 @@
 .road-site-card {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
+  min-width: 0;
 }
 
 .road-site-card:last-child { border-bottom: 0; }
@@ -1004,12 +1045,15 @@
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 4px;
+  min-width: 0;
 }
 
 .road-site-desc {
   font-size: 0.92rem;
   font-weight: 700;
   color: var(--navy);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .road-dist-pill {
@@ -1030,17 +1074,21 @@
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .road-stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 8px;
 }
 
-.road-stat { text-align: center; }
+.road-stat {
+  text-align: center;
+  min-width: 0;
+}
 
 .road-stat-value {
   font-size: 1.15rem;
@@ -1048,6 +1096,7 @@
   color: var(--text);
   line-height: 1;
   margin-bottom: 2px;
+  overflow-wrap: anywhere;
 }
 
 .road-stat-label {
@@ -1090,6 +1139,8 @@
   align-items: center;
   gap: 8px;
   margin: 4px 0 8px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .traffic-level-badge {
@@ -1100,12 +1151,16 @@
   border-radius: 20px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .road-data-note {
   font-size: 0.68rem;
   color: var(--muted);
   font-style: italic;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* ── Approximate location notice ───────────────────────────────────── */
@@ -1190,6 +1245,7 @@
 
 .fuel-table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   font-size: 0.78rem;
 }
@@ -1214,6 +1270,7 @@
   padding: 8px 10px;
   font-weight: 500;
   min-width: 160px;
+  overflow-wrap: anywhere;
 }
 
 .fuel-dist {
@@ -1306,14 +1363,45 @@
     gap: 12px;
   }
 
+  .search-panel {
+    margin: 16px 10px;
+    padding: 22px 18px;
+  }
+
+  .search-input-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .search-btn {
+    width: 100%;
+  }
+
   .stat-row { grid-template-columns: repeat(2, 1fr); }
   .crime-bar-item { grid-template-columns: minmax(96px, 120px) minmax(54px, 1fr) max-content; }
   .map-container { height: 280px; }
   .price-summary-row { grid-template-columns: 1fr 1fr; }
   .sales-header-row,
-  .sales-row { grid-template-columns: 80px 80px 1fr 60px; }
+  .sales-row { grid-template-columns: 80px 80px minmax(0, 1fr) 60px; }
   .sales-tenure { display: none; }
-  .road-stats-row { grid-template-columns: 1fr 1fr; }
+
+  .flood-item-header {
+    flex-wrap: wrap;
+  }
+
+  .station-card {
+    align-items: flex-start;
+  }
+
+  .road-site-card {
+    padding: 12px;
+  }
+
+  .road-site-header {
+    align-items: flex-start;
+  }
+
+  .road-stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   .fuel-cheapest-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1413,11 +1501,35 @@
   .price-summary-card { padding: 10px 8px; }
   .price-summary-value { font-size: 1rem; }
   .sales-header-row,
-  .sales-row { grid-template-columns: 70px 70px 1fr; }
+  .sales-row { grid-template-columns: 70px 70px minmax(0, 1fr); }
   .sales-price { display: none; }
-  .road-stats-row { grid-template-columns: 1fr 1fr; }
+  .road-site-header {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .road-dist-pill {
+    justify-self: start;
+  }
+  .road-stats-row { grid-template-columns: 1fr; }
 
   .fuel-cheapest-row { grid-template-columns: 1fr 1fr; gap: 8px; }
   .fuel-cheapest-label { min-height: 2.4em; }
   .fuel-cheapest-price { font-size: 1.28rem; }
+}
+
+@media (max-width: 340px) {
+  .stat-row,
+  .price-summary-row,
+  .fuel-cheapest-row {
+    grid-template-columns: 1fr;
+  }
+
+  .crime-bar-item {
+    grid-template-columns: 1fr max-content;
+  }
+
+  .crime-bar-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 }
