@@ -4,7 +4,7 @@ import {
   applyHostFonts,
   applyHostStyleVariables,
 } from "@modelcontextprotocol/ext-apps";
-import { shouldUseDemoFallback } from "./bootstrap-policy.js";
+import { shouldShowSearchFallback, shouldUseDemoFallback } from "./bootstrap-policy.js";
 import { createFeatureViews } from "./feature-views.js";
 import "./global.css";
 import "./mcp-app.css";
@@ -12,7 +12,7 @@ import "./mcp-app.css";
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const state = {
-  mode: "search",          // search | full | crime | flood
+  mode: "loading",         // loading | search | full | crime | flood
   area: null,              // geocoded area object
   month: null,
   crime: null,             // crime summary (from overview)
@@ -473,7 +473,13 @@ app.connect().catch(console.error).then(async () => {
   }
 
   if (!bootstrapped) {
-    showView("search");
+    if (shouldShowSearchFallback({ bootstrapped, demoModeEnabled })) {
+      state.mode = "search";
+      showView("search");
+    } else {
+      state.mode = "loading";
+      showView("loading");
+    }
     notifyHostSize();
   }
 });
