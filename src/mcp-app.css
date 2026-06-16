@@ -536,6 +536,65 @@
   color: var(--muted);
 }
 
+/* ── Overview links ───────────────────────────────────────────────── */
+.overview-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.overview-link-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.overview-link-card:hover {
+  border-color: var(--blue-mid);
+  background: var(--blue-light);
+}
+
+.overview-link-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.overview-link-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.overview-link-copy strong {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.overview-link-copy small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-link-arrow {
+  color: var(--blue);
+  font-weight: 800;
+}
+
 /* ── Crime category bars ───────────────────────────────────────────── */
 .crime-bar-list { display: grid; gap: 8px; }
 
@@ -1435,6 +1494,15 @@
 
   .section-body {
     padding: 11px 12px;
+  }
+
+  .overview-link-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .overview-link-card {
+    padding: 10px;
   }
 
   .crime-bar-item { grid-template-columns: minmax(96px, 120px) minmax(54px, 1fr) max-content; }

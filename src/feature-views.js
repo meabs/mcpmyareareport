@@ -276,75 +276,50 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     });
   }
 
-  // ── Overview crime section ────────────────────────────────────────────────
+  // ── Overview next steps ───────────────────────────────────────────────────
 
-  function renderOverviewCrime() {
-    const el = document.getElementById("overview-crime");
+  function renderOverviewNext() {
+    const el = document.getElementById("overview-next");
     if (!el) return;
-    if (!state.crime) {
-      el.innerHTML = `
-        <div class="section-header"><h2 class="section-title">Crime by category</h2></div>
-        <div class="section-body"><div class="data-loading-row"><div class="data-loading-bar"></div><div class="data-loading-bar" style="width:70%"></div><div class="data-loading-bar" style="width:55%"></div></div></div>
-      `;
-      return;
-    }
+
+    const crimeSummary = state.crime
+      ? `${state.crime.total} crimes · ${state.crime.categories?.[0]?.label || 'category breakdown'}`
+      : 'Loading crime detail';
+    const floodSummary = state.flood
+      ? `${state.flood.warnings} warnings · ${state.flood.alerts} alerts`
+      : 'Loading flood detail';
+
     el.innerHTML = `
       <div class="section-header">
-        <h2 class="section-title">Crime by category</h2>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="month-badge">${fmtMonth(state.month)}</span>
-          ${crimeAvgChip(state.crime)}
-        </div>
+        <h2 class="section-title">Explore details</h2>
       </div>
       <div class="section-body">
-        <div id="overview-crime-bars" class="crime-bar-list"></div>
-        ${state.crime.total < 20 ? `<p style="margin:8px 0 0;font-size:0.7rem;color:var(--muted);background:var(--bg-muted,#f8fafc);padding:6px 8px;border-radius:6px;border-left:3px solid var(--border)">⚠ Data completeness varies by police force. This area may have limited coverage in the Police UK database.</p>` : ''}
-        <p style="margin:8px 0 0;font-size:0.72rem;color:var(--muted)">
-          ${state.crime.stopSearch} stop & search recorded this month.
-          <button class="hint-chip" style="margin-left:6px" id="crime-detail-link">Full analysis →</button>
-        </p>
+        <div class="overview-link-grid">
+          <button class="overview-link-card" id="overview-crime-link" type="button">
+            <span class="overview-link-icon">🔎</span>
+            <span class="overview-link-copy">
+              <strong>Crime analysis</strong>
+              <small>${crimeSummary}</small>
+            </span>
+            <span class="overview-link-arrow">→</span>
+          </button>
+          <button class="overview-link-card" id="overview-flood-link" type="button">
+            <span class="overview-link-icon">🌊</span>
+            <span class="overview-link-copy">
+              <strong>Flood report</strong>
+              <small>${floodSummary}</small>
+            </span>
+            <span class="overview-link-arrow">→</span>
+          </button>
+        </div>
       </div>
     `;
-    renderCrimeBars(state.crime.categories, "overview-crime-bars");
-    document.getElementById("crime-detail-link")?.addEventListener("click", () => {
+
+    document.getElementById("overview-crime-link")?.addEventListener("click", () => {
       showTab("crime");
       loadCrimeDetail();
     });
-  }
-
-  // ── Overview flood section ────────────────────────────────────────────────
-
-  function renderOverviewFlood() {
-    const el = document.getElementById("overview-flood");
-    if (!el) return;
-    if (!state.flood) {
-      el.innerHTML = `
-        <div class="section-header"><h2 class="section-title">Flood risk</h2></div>
-        <div class="section-body"><div class="data-loading-row"><div class="data-loading-bar" style="width:60%"></div><div class="data-loading-bar" style="width:45%"></div></div></div>
-      `;
-      return;
-    }
-    el.innerHTML = `
-      <div class="section-header">
-        <h2 class="section-title">Flood risk</h2>
-        <span class="risk-badge ${state.flood.riskLevel}">
-          <span class="risk-dot"></span>${riskLabel(state.flood.riskLevel)}
-        </span>
-      </div>
-      <div class="section-body">
-        <div style="display:flex;gap:12px;margin-bottom:12px">
-          <div class="info-pill ${state.flood.warnings > 0 ? 'red' : 'green'}">⚠ ${state.flood.warnings} warning${state.flood.warnings !== 1 ? 's' : ''}</div>
-          <div class="info-pill ${state.flood.alerts > 0 ? 'amber' : 'green'}">🔔 ${state.flood.alerts} alert${state.flood.alerts !== 1 ? 's' : ''}</div>
-          <div class="info-pill blue">📡 ${state.flood.stations?.length ?? 0} stations</div>
-        </div>
-        <div id="overview-flood-list" class="flood-list"></div>
-        ${state.flood.total === 0
-          ? `<div class="empty-state" style="padding:12px 0">No active flood warnings or alerts in ${state.area?.county || 'this area'}.</div>`
-          : `<button class="hint-chip" style="margin-top:8px" id="flood-detail-link">Full flood report →</button>`}
-      </div>
-    `;
-    renderFloodItems(state.flood.items?.slice(0, 3), "overview-flood-list");
-    document.getElementById("flood-detail-link")?.addEventListener("click", () => {
+    document.getElementById("overview-flood-link")?.addEventListener("click", () => {
       showTab("flood");
       loadFloodDetail();
     });
@@ -355,8 +330,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
   function renderOverview() {
     if (!state.area) return;
     renderStatRow();
-    renderOverviewCrime();
-    renderOverviewFlood();
+    renderOverviewNext();
     showApproximateNotice(state.area);
 
     // Map
