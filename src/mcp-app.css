@@ -41,34 +41,34 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 180px;
-  gap: 8px;
-  padding: 40px;
+  min-height: 118px;
+  gap: 6px;
+  padding: 22px;
 }
 
 .loading-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   background: var(--navy);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
+  font-size: 1.05rem;
   font-weight: 800;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 .loading-label {
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--navy);
   margin: 4px 0 0;
 }
 
 .loading-sub {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--muted);
   margin: 0;
 }
@@ -221,8 +221,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
 }
 
@@ -867,8 +867,8 @@
 
 /* ── App footer ────────────────────────────────────────────────────── */
 .app-footer {
-  padding: 12px 16px;
-  font-size: 0.68rem;
+  padding: 9px 16px;
+  font-size: 0.66rem;
   color: var(--muted);
   border-top: 1px solid var(--border);
   text-align: center;
@@ -1348,19 +1348,48 @@
   }
 
   .tab-btn {
-    padding: 11px 13px;
-    font-size: 0.82rem;
+    padding: 10px 12px;
+    font-size: 0.78rem;
   }
 
   .tab-panel,
   .panel-body {
-    padding: 12px;
-    gap: 12px;
+    padding: 10px;
+    gap: 10px;
   }
 
   .search-panel {
     margin: 16px 10px;
-    padding: 22px 18px;
+    padding: 18px 16px;
+  }
+
+  .search-brand {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .brand-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    font-size: 1.25rem;
+  }
+
+  .brand-title { font-size: 1.18rem; }
+
+  .search-intro {
+    font-size: 0.82rem;
+    margin-bottom: 14px;
+  }
+
+  .source-badges {
+    gap: 5px;
+    margin-top: 14px;
+  }
+
+  .source-badge {
+    padding: 3px 8px;
+    font-size: 0.66rem;
   }
 
   .search-input-row {
@@ -1372,9 +1401,47 @@
     width: 100%;
   }
 
-  .stat-row { grid-template-columns: repeat(2, 1fr); }
+  .stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 10px 11px;
+    gap: 3px;
+    box-shadow: none;
+  }
+
+  .stat-card-icon {
+    font-size: 1rem;
+    margin-bottom: 2px;
+  }
+
+  .stat-card-value {
+    font-size: 1.15rem;
+  }
+
+  .stat-card-sub {
+    font-size: 0.68rem;
+  }
+
+  .section {
+    box-shadow: none;
+  }
+
+  .section-header {
+    padding: 10px 12px 9px;
+  }
+
+  .section-body {
+    padding: 11px 12px;
+  }
+
   .crime-bar-item { grid-template-columns: minmax(96px, 120px) minmax(54px, 1fr) max-content; }
-  .map-container { height: 280px; }
+  .map-container {
+    height: 220px;
+    box-shadow: none;
+  }
   .price-summary-row { grid-template-columns: 1fr 1fr; }
   .sales-header-row,
   .sales-row { grid-template-columns: 80px 80px minmax(0, 1fr) 60px; }
@@ -1455,6 +1522,11 @@
   .fuel-badge {
     margin-left: 0;
     margin-top: 4px;
+  }
+
+  .app-footer {
+    padding: 8px 12px;
+    font-size: 0.64rem;
   }
 
   .model-context-panel {

@@ -73,10 +73,10 @@
         </header>
 
         <nav class="tab-nav" id="tab-nav" role="tablist">
-          <button class="tab-btn active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+          <button class="tab-btn active" data-tab="overview" role="tab" aria-selected="true">Home</button>
           <button class="tab-btn" data-tab="crime" role="tab" aria-selected="false">Crime</button>
           <button class="tab-btn" data-tab="flood" role="tab" aria-selected="false">Flood</button>
-          <button class="tab-btn" data-tab="property" role="tab" aria-selected="false">Property</button>
+          <button class="tab-btn" data-tab="property" role="tab" aria-selected="false">Homes</button>
           <button class="tab-btn" data-tab="roads" role="tab" aria-selected="false">Roads</button>
           <button class="tab-btn" data-tab="fuel" role="tab" aria-selected="false">Fuel</button>
           <button class="tab-btn" data-tab="about" role="tab" aria-selected="false">Sources</button>
@@ -84,11 +84,11 @@
 
         <!-- Overview tab -->
         <div id="tab-overview" class="tab-panel" role="tabpanel">
-          <div id="map-container" class="map-container" aria-label="Area map"></div>
-          <div class="map-legend" id="map-legend"></div>
           <div class="stat-row" id="stat-row"></div>
           <div class="section" id="overview-crime"></div>
           <div class="section" id="overview-flood"></div>
+          <div id="map-container" class="map-container" aria-label="Area map"></div>
+          <div class="map-legend" id="map-legend"></div>
         </div>
 
         <!-- Crime tab -->
@@ -168,7 +168,7 @@
         </div>
 
         <footer class="app-footer">
-          Data: Police UK · Environment Agency · Land Registry · Fuel Finder · Open Government Licence v3.0
+          Sources: official UK government and public data · See Sources tab
         </footer>
       </div>
 
