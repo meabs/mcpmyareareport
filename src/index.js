@@ -57,7 +57,7 @@ export async function startStreamableHttpServer(createMcpServer) {
       name_for_human: "MyAreaReport",
       name_for_model: "myareareport",
       description_for_human: "UK area intelligence — crime statistics, flood warnings, house prices, fuel prices and road traffic from official government data.",
-      description_for_model: "Provides UK area intelligence for any postcode or place name: street-level crime statistics from Police UK, flood warnings and river levels from the Environment Agency, house prices from HM Land Registry, live fuel prices from GOV.UK Fuel Finder, and road traffic from National Highways. All data is real-time from official open government APIs. No user data is stored.",
+      description_for_model: "Provides UK area intelligence for any postcode or place name: street-level crime statistics from Police UK, flood warnings and river levels from the Environment Agency, house prices from HM Land Registry, live fuel prices from GOV.UK Fuel Finder, and road traffic from National Highways. User-submitted postcodes and place names are used only to retrieve requested public data and are not stored by MyAreaReport after the request completes.",
       auth: { type: "none" },
       api: { type: "mcp", url: "https://mcp.myareareport.com/mcp" },
       logo_url: "https://mcp.myareareport.com/logo.png",
@@ -84,19 +84,33 @@ export async function startStreamableHttpServer(createMcpServer) {
 <body>
   <h1>Privacy Policy</h1>
   <p><strong>Service:</strong> MyAreaReport &mdash; <a href="https://mcp.myareareport.com">mcp.myareareport.com</a><br>
-  <strong>Last updated:</strong> May 2026</p>
+  <strong>Last updated:</strong> 25 June 2026</p>
 
-  <h2>What we do</h2>
-  <p>MyAreaReport is a read-only information service. It retrieves publicly available UK government data (crime statistics, flood warnings, house prices, fuel prices, road traffic) for a postcode or place name you provide, and returns that data to the AI assistant you are using.</p>
+  <h2>Who we are and what we do</h2>
+  <p>MyAreaReport is a read-only UK area information service. It runs as an MCP app for AI assistants such as ChatGPT and retrieves public area data for a UK postcode, outcode, or place name you provide. Contact: <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
 
-  <h2>Data we process</h2>
+  <h2>Data collected or processed</h2>
+  <p>Depending on the tool or app screen used, MyAreaReport may process the following data:</p>
   <ul>
-    <li><strong>Postcode or place name</strong> you enter — used solely to query government APIs. It is not stored, logged, or shared beyond the API calls required to serve your request.</li>
-    <li><strong>Server logs</strong> — standard web server access logs (IP address, timestamp, HTTP method, path) are retained for up to 30 days for security and debugging purposes only.</li>
+    <li><strong>User inputs:</strong> UK postcode, outcode, or place name supplied to tools such as area-search, area-crime, area-flood, area-property, area-roads, area-fuel, and the app search form.</li>
+    <li><strong>Resolved area data:</strong> postcode, latitude/longitude, district, county, region, and approximate-place metadata returned by geocoding.</li>
+    <li><strong>Public report outputs:</strong> crime categories, incident counts, outcomes, trends, stop-and-search summaries, flood warnings and alerts, monitoring station readings, Land Registry property summaries and recent sales, traffic counts, road sensor summaries, fuel station names, fuel prices, distances, and map tile coordinates.</li>
+    <li><strong>AI-assistant context:</strong> after a report loads, the app may send a concise summary of the selected area and report results back to the AI assistant so it can answer follow-up questions about the displayed report.</li>
+    <li><strong>App interaction state:</strong> the app processes tab selections and app-only tool calls needed to load the selected view. In demo mode only, a local browser flag may be stored to remember demo mode on that device.</li>
+    <li><strong>Technical and security data:</strong> IP addresses are held briefly in memory for rate limiting. The MyAreaReport application does not intentionally persist access logs, user lookup history, or generated reports.</li>
   </ul>
 
-  <h2>Third-party APIs called</h2>
-  <p>Your postcode is passed to these official UK government APIs to retrieve area data:</p>
+  <h2>Purposes of processing</h2>
+  <ul>
+    <li>To resolve a postcode, outcode, or place name to an area.</li>
+    <li>To retrieve and display the requested public crime, flood, property, roads, fuel, and map data.</li>
+    <li>To return tool outputs and app summaries to the AI assistant you are using.</li>
+    <li>To operate, secure, and rate-limit the service.</li>
+    <li>To comply with legal, platform, and security obligations.</li>
+  </ul>
+
+  <h2>Recipients and data sources</h2>
+  <p>MyAreaReport may send the postcode, outcode, place name, resolved coordinates, or derived search area to the following services when needed to answer your request:</p>
   <ul>
     <li><a href="https://data.police.uk">Police UK API</a> — crime data</li>
     <li><a href="https://environment.data.gov.uk">Environment Agency</a> — flood warnings and river levels</li>
@@ -104,21 +118,45 @@ export async function startStreamableHttpServer(createMcpServer) {
     <li><a href="https://landregistry.data.gov.uk">HM Land Registry</a> — house prices</li>
     <li><a href="https://www.developer.fuel-finder.service.gov.uk">GOV.UK Fuel Finder</a> — fuel prices</li>
     <li><a href="https://webtris.highwaysengland.co.uk">National Highways WebTRIS</a> — road traffic</li>
-    <li><a href="https://www.openstreetmap.org">OpenStreetMap</a> — map tiles fetched server-side by MyAreaReport</li>
+    <li>Department for Transport road traffic datasets — local A-road count-point data</li>
+    <li><a href="https://www.openstreetmap.org">OpenStreetMap</a> — map tiles, fetched server-side by MyAreaReport</li>
+    <li>The AI assistant platform you use, such as OpenAI/ChatGPT — tool inputs, tool outputs, app UI data, and follow-up context needed to display and discuss the report</li>
+    <li>Hosting and infrastructure providers used to run MyAreaReport — transient infrastructure and security data needed to operate the service</li>
   </ul>
-  <p>All data returned is published under the Open Government Licence v3.0 and is available publicly. When maps are shown, MyAreaReport fetches OpenStreetMap tiles from the server so your browser does not connect directly to OpenStreetMap.</p>
+  <p>MyAreaReport does not sell personal data and does not use your postcode or place lookup for advertising or profiling.</p>
 
   <h2>Cookies and tracking</h2>
-  <p>This service sets no cookies and uses no analytics or tracking technologies.</p>
+  <p>MyAreaReport does not set advertising cookies and does not use third-party analytics. Demo mode may use local storage on your device to remember that demo mode is enabled; this is not used for advertising or profiling.</p>
 
   <h2>Data retention</h2>
-  <p>We do not store, retain, or process any user-submitted data beyond the immediate API request. Server access logs are automatically deleted after 30 days.</p>
+  <ul>
+    <li><strong>Postcodes, outcodes, place names, and generated reports:</strong> not stored by MyAreaReport after the request completes.</li>
+    <li><strong>In-memory rate limit data:</strong> IP-based counters are cleared approximately every 60 seconds.</li>
+    <li><strong>Application access and error logs:</strong> the MyAreaReport application does not intentionally persist access logs, error logs, user lookup history, or generated reports.</li>
+    <li><strong>Public data caches:</strong> public fuel station, road count, and similar source datasets may be cached temporarily to improve performance. These caches do not contain user-submitted lookup history.</li>
+    <li><strong>AI assistant history:</strong> conversation and tool output retention is controlled by the AI assistant platform and your settings with that platform.</li>
+  </ul>
 
-  <h2>Your rights</h2>
-  <p>As we hold no personal data about you, there is nothing to access, correct, or delete. For questions, contact us at <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
+  <h2>User controls</h2>
+  <ul>
+    <li>You can choose not to provide a postcode, outcode, or place name.</li>
+    <li>You can close or remove the app from your AI assistant session.</li>
+    <li>You can clear the conversation or tool history using the controls provided by your AI assistant platform.</li>
+    <li>If demo mode was enabled on your device, you can clear the browser/app local storage for this site.</li>
+    <li>You can contact <a href="mailto:garry@myareareport.com">garry@myareareport.com</a> to ask about access, deletion, correction, objection, restriction, or other privacy rights that may apply to data held by MyAreaReport.</li>
+  </ul>
+
+  <h2>Legal basis</h2>
+  <p>Where privacy law requires a legal basis, MyAreaReport processes data to provide the requested service, to pursue legitimate interests in operating and securing the service, and to comply with applicable legal obligations.</p>
+
+  <h2>International transfers</h2>
+  <p>The service may be accessed through AI assistant platforms and infrastructure providers that process data in different countries. Those providers are responsible for their own processing under their privacy terms.</p>
+
+  <h2>Children</h2>
+  <p>MyAreaReport is not directed to children and should not be used to submit information about children.</p>
 
   <h2>Changes</h2>
-  <p>We may update this policy. The current version is always available at this URL.</p>
+  <p>We may update this policy as the app, tools, or data sources change. The current version is always available at this URL.</p>
 </body>
 </html>`);
   });
