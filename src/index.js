@@ -63,6 +63,7 @@ export async function startStreamableHttpServer(createMcpServer) {
       logo_url: "https://mcp.myareareport.com/logo.png",
       contact_email: "garry@myareareport.com",
       legal_info_url: "https://mcp.myareareport.com/privacy",
+      terms_of_service_url: "https://mcp.myareareport.com/terms",
     });
   });
 
@@ -337,6 +338,224 @@ export async function startStreamableHttpServer(createMcpServer) {
 
   <h2>Contact information</h2>
   <p>For privacy questions, requests, or complaints, contact <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
+    </section>
+  </main>
+</body>
+</html>`);
+  });
+
+  // ── Terms of service ──────────────────────────────────────────────────────
+  app.get("/terms", (_req, res) => {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Terms of Service — MyAreaReport</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy: #0c2340;
+      --blue: #1d4ed8;
+      --bg: #eef3f8;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #64748b;
+      --border: #dbe3ee;
+      --soft: #f8fafc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+
+    .legal-shell {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+
+    .legal-hero {
+      padding: 30px 32px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      box-shadow: 0 16px 40px rgba(12, 35, 64, 0.08);
+      margin-bottom: 18px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      width: 34px;
+      height: 34px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: var(--navy);
+      color: #fff;
+      font-weight: 900;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      color: var(--navy);
+      font-size: clamp(2rem, 5vw, 3.1rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .lede {
+      max-width: 720px;
+      margin: 0;
+      color: #475569;
+      font-size: 1.02rem;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .meta-card {
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .meta-card strong {
+      display: block;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .legal-content {
+      padding: 6px 32px 28px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      box-shadow: 0 10px 28px rgba(12, 35, 64, 0.05);
+    }
+
+    h2 {
+      margin: 30px 0 10px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+      color: var(--navy);
+      font-size: 1.15rem;
+      line-height: 1.25;
+    }
+
+    h2:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    p { margin: 0 0 12px; }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 1.25rem;
+    }
+
+    li { margin: 0 0 8px; }
+
+    strong { color: var(--text); }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 650;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    .note {
+      padding: 13px 15px;
+      border-left: 4px solid var(--blue);
+      border-radius: 8px;
+      background: #eff6ff;
+      color: #1e3a8a;
+    }
+
+    @media (max-width: 640px) {
+      .legal-shell {
+        width: min(100% - 20px, 920px);
+        padding: 16px 0 32px;
+      }
+
+      .legal-hero,
+      .legal-content {
+        padding: 20px 18px;
+        border-radius: 10px;
+      }
+
+      .meta-grid { grid-template-columns: 1fr; }
+      h2 { margin-top: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="legal-shell">
+    <header class="legal-hero">
+      <div class="brand-row"><span class="brand-mark">M</span><span>MyAreaReport</span></div>
+      <h1>Terms of Service</h1>
+      <p class="lede">The terms for using MyAreaReport to retrieve read-only UK area intelligence from public and official data sources.</p>
+      <div class="meta-grid">
+        <div class="meta-card"><strong>Service</strong><a href="https://mcp.myareareport.com">mcp.myareareport.com</a></div>
+        <div class="meta-card"><strong>Last updated and effective</strong>25 June 2026</div>
+      </div>
+    </header>
+    <section class="legal-content">
+      <h2>Use of the service</h2>
+      <p>MyAreaReport provides read-only UK area information from public and official data sources. You may use the service to look up area reports for UK postcodes, outcodes, and place names.</p>
+
+      <h2>Information only</h2>
+      <p class="note">The service is provided for general information and convenience. It is not legal, financial, property, insurance, safety, emergency, or professional advice.</p>
+      <p>You should verify important decisions using the original data source or a qualified professional.</p>
+
+      <h2>Data sources and accuracy</h2>
+      <p>Reports may include data from Police UK, the Environment Agency, Postcodes.io, HM Land Registry, National Highways, GOV.UK Fuel Finder, Department for Transport road traffic data, and OpenStreetMap.</p>
+      <p>These sources may be delayed, incomplete, unavailable, or changed by their publishers. MyAreaReport does not guarantee that any result is complete, current, or error-free.</p>
+
+      <h2>No emergency use</h2>
+      <p>Do not rely on MyAreaReport for emergency warnings or immediate safety decisions. For emergencies, contact the relevant emergency services or official authority.</p>
+
+      <h2>Acceptable use</h2>
+      <p>You must not misuse the service, attempt to disrupt it, bypass rate limits, reverse engineer private infrastructure, or use it for unlawful, harmful, or abusive activity.</p>
+
+      <h2>Availability</h2>
+      <p>The service is provided as available. It may be changed, interrupted, suspended, or discontinued without notice.</p>
+
+      <h2>Limitation of liability</h2>
+      <p>To the fullest extent permitted by law, MyAreaReport is not liable for losses arising from use of, inability to use, or reliance on the service or its results.</p>
+
+      <h2>Privacy</h2>
+      <p>Use of the service is also governed by the <a href="https://mcp.myareareport.com/privacy">Privacy Policy</a>.</p>
+
+      <h2>Contact information</h2>
+      <p>For questions about these terms, contact <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
     </section>
   </main>
 </body>

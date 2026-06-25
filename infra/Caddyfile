@@ -26,6 +26,10 @@
         reverse_proxy mcp:3001
     }
 
+    handle /terms {
+        reverse_proxy mcp:3001
+    }
+
     handle /.well-known/* {
         reverse_proxy mcp:3001
     }
