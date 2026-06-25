@@ -84,10 +84,14 @@ export async function startStreamableHttpServer(createMcpServer) {
 <body>
   <h1>Privacy Policy</h1>
   <p><strong>Service:</strong> MyAreaReport &mdash; <a href="https://mcp.myareareport.com">mcp.myareareport.com</a><br>
-  <strong>Last updated:</strong> 25 June 2026</p>
+  <strong>Last updated and effective:</strong> 25 June 2026</p>
 
   <h2>Who we are and what we do</h2>
-  <p>MyAreaReport is a read-only UK area information service. It runs as an MCP app for AI assistants such as ChatGPT and retrieves public area data for a UK postcode, outcode, or place name you provide. Contact: <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
+  <p>MyAreaReport is a read-only UK area information service operated by MyAreaReport. It runs as an MCP app for AI assistants such as ChatGPT and retrieves public area data for a UK postcode, outcode, or place name you provide. Contact: <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
+  <p>MyAreaReport does not provide user accounts, payments, newsletters, targeted advertising, or profiling.</p>
+
+  <h2>Sources of information</h2>
+  <p>MyAreaReport receives information directly from the user or AI assistant request, from public and official data sources, and from transient technical request data needed to operate the service.</p>
 
   <h2>Data collected or processed</h2>
   <p>Depending on the tool or app screen used, MyAreaReport may process the following data:</p>
@@ -100,7 +104,7 @@ export async function startStreamableHttpServer(createMcpServer) {
     <li><strong>Technical and security data:</strong> IP addresses are held briefly in memory for rate limiting. The MyAreaReport application does not intentionally persist access logs, user lookup history, or generated reports.</li>
   </ul>
 
-  <h2>Purposes of processing</h2>
+  <h2>How we use information</h2>
   <ul>
     <li>To resolve a postcode, outcode, or place name to an area.</li>
     <li>To retrieve and display the requested public crime, flood, property, roads, fuel, and map data.</li>
@@ -109,7 +113,7 @@ export async function startStreamableHttpServer(createMcpServer) {
     <li>To comply with legal, platform, and security obligations.</li>
   </ul>
 
-  <h2>Recipients and data sources</h2>
+  <h2>How we disclose information</h2>
   <p>MyAreaReport may send the postcode, outcode, place name, resolved coordinates, or derived search area to the following services when needed to answer your request:</p>
   <ul>
     <li><a href="https://data.police.uk">Police UK API</a> — crime data</li>
@@ -125,8 +129,8 @@ export async function startStreamableHttpServer(createMcpServer) {
   </ul>
   <p>MyAreaReport does not sell personal data and does not use your postcode or place lookup for advertising or profiling.</p>
 
-  <h2>Cookies and tracking</h2>
-  <p>MyAreaReport does not set advertising cookies and does not use third-party analytics. Demo mode may use local storage on your device to remember that demo mode is enabled; this is not used for advertising or profiling.</p>
+  <h2>Cookies, analytics, and advertising</h2>
+  <p>MyAreaReport does not set advertising cookies, does not use third-party analytics, and does not use targeted advertising. Demo mode may use local storage on your device to remember that demo mode is enabled; this is not used for advertising or profiling.</p>
 
   <h2>Data retention</h2>
   <ul>
@@ -137,14 +141,22 @@ export async function startStreamableHttpServer(createMcpServer) {
     <li><strong>AI assistant history:</strong> conversation and tool output retention is controlled by the AI assistant platform and your settings with that platform.</li>
   </ul>
 
-  <h2>User controls</h2>
+  <h2>How we protect information</h2>
+  <p>MyAreaReport uses reasonable technical and organisational measures to operate the service securely, including server-side API calls, rate limiting, and transport security. No internet service can be guaranteed to be fully secure.</p>
+
+  <h2>Third-party services and websites</h2>
+  <p>The app links to and retrieves data from public third-party services. Those services and the AI assistant platform you use have their own privacy policies and are responsible for their own processing. MyAreaReport does not control their privacy practices.</p>
+
+  <h2>Your choices and rights</h2>
   <ul>
     <li>You can choose not to provide a postcode, outcode, or place name.</li>
     <li>You can close or remove the app from your AI assistant session.</li>
     <li>You can clear the conversation or tool history using the controls provided by your AI assistant platform.</li>
     <li>If demo mode was enabled on your device, you can clear the browser/app local storage for this site.</li>
-    <li>You can contact <a href="mailto:garry@myareareport.com">garry@myareareport.com</a> to ask about access, deletion, correction, objection, restriction, or other privacy rights that may apply to data held by MyAreaReport.</li>
+    <li>Depending on applicable law, you may have rights to access, delete, correct, object to, or restrict processing of personal information held by MyAreaReport.</li>
+    <li>You can contact <a href="mailto:garry@myareareport.com">garry@myareareport.com</a> to ask about privacy rights or any privacy concern.</li>
   </ul>
+  <p>If you are in the UK or EEA and are not satisfied with our response, you may have the right to complain to your local data protection authority, such as the UK Information Commissioner&apos;s Office.</p>
 
   <h2>Legal basis</h2>
   <p>Where privacy law requires a legal basis, MyAreaReport processes data to provide the requested service, to pursue legitimate interests in operating and securing the service, and to comply with applicable legal obligations.</p>
@@ -156,7 +168,10 @@ export async function startStreamableHttpServer(createMcpServer) {
   <p>MyAreaReport is not directed to children and should not be used to submit information about children.</p>
 
   <h2>Changes</h2>
-  <p>We may update this policy as the app, tools, or data sources change. The current version is always available at this URL.</p>
+  <p>We may update this policy as the app, tools, data sources, or legal requirements change. The current version is always available at this URL.</p>
+
+  <h2>Contact information</h2>
+  <p>For privacy questions, requests, or complaints, contact <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
 </body>
 </html>`);
   });
