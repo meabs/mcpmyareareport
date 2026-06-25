@@ -76,19 +76,184 @@ export async function startStreamableHttpServer(createMcpServer) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Privacy Policy — MyAreaReport</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #111; line-height: 1.6; }
-    h1 { color: #0c2340; } h2 { color: #1d4ed8; margin-top: 2em; }
-    a { color: #1d4ed8; }
+    :root {
+      color-scheme: light;
+      --navy: #0c2340;
+      --blue: #1d4ed8;
+      --bg: #eef3f8;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #64748b;
+      --border: #dbe3ee;
+      --soft: #f8fafc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+
+    .policy-shell {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+
+    .policy-hero {
+      padding: 30px 32px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      box-shadow: 0 16px 40px rgba(12, 35, 64, 0.08);
+      margin-bottom: 18px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      width: 34px;
+      height: 34px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: var(--navy);
+      color: #fff;
+      font-weight: 900;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      color: var(--navy);
+      font-size: clamp(2rem, 5vw, 3.1rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .lede {
+      max-width: 720px;
+      margin: 0;
+      color: #475569;
+      font-size: 1.02rem;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .meta-card {
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .meta-card strong {
+      display: block;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .policy-content {
+      padding: 6px 32px 28px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      box-shadow: 0 10px 28px rgba(12, 35, 64, 0.05);
+    }
+
+    h2 {
+      margin: 30px 0 10px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+      color: var(--navy);
+      font-size: 1.15rem;
+      line-height: 1.25;
+    }
+
+    h2:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    p { margin: 0 0 12px; }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 1.25rem;
+    }
+
+    li { margin: 0 0 8px; }
+
+    strong { color: var(--text); }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 650;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    .note {
+      padding: 13px 15px;
+      border-left: 4px solid var(--blue);
+      border-radius: 8px;
+      background: #eff6ff;
+      color: #1e3a8a;
+    }
+
+    @media (max-width: 640px) {
+      .policy-shell {
+        width: min(100% - 20px, 920px);
+        padding: 16px 0 32px;
+      }
+
+      .policy-hero,
+      .policy-content {
+        padding: 20px 18px;
+        border-radius: 10px;
+      }
+
+      .meta-grid { grid-template-columns: 1fr; }
+      h2 { margin-top: 24px; }
+    }
   </style>
 </head>
 <body>
-  <h1>Privacy Policy</h1>
-  <p><strong>Service:</strong> MyAreaReport &mdash; <a href="https://mcp.myareareport.com">mcp.myareareport.com</a><br>
-  <strong>Last updated and effective:</strong> 25 June 2026</p>
+  <main class="policy-shell">
+    <header class="policy-hero">
+      <div class="brand-row"><span class="brand-mark">M</span><span>MyAreaReport</span></div>
+      <h1>Privacy Policy</h1>
+      <p class="lede">How MyAreaReport handles postcode lookups, public area data, AI-assistant context, retention, and user controls.</p>
+      <div class="meta-grid">
+        <div class="meta-card"><strong>Service</strong><a href="https://mcp.myareareport.com">mcp.myareareport.com</a></div>
+        <div class="meta-card"><strong>Last updated and effective</strong>25 June 2026</div>
+      </div>
+    </header>
+    <section class="policy-content">
 
   <h2>Who we are and what we do</h2>
   <p>MyAreaReport is a read-only UK area information service operated by MyAreaReport. It runs as an MCP app for AI assistants such as ChatGPT and retrieves public area data for a UK postcode, outcode, or place name you provide. Contact: <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
-  <p>MyAreaReport does not provide user accounts, payments, newsletters, targeted advertising, or profiling.</p>
+  <p class="note">MyAreaReport does not provide user accounts, payments, newsletters, targeted advertising, or profiling.</p>
 
   <h2>Sources of information</h2>
   <p>MyAreaReport receives information directly from the user or AI assistant request, from public and official data sources, and from transient technical request data needed to operate the service.</p>
@@ -172,6 +337,8 @@ export async function startStreamableHttpServer(createMcpServer) {
 
   <h2>Contact information</h2>
   <p>For privacy questions, requests, or complaints, contact <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
+    </section>
+  </main>
 </body>
 </html>`);
   });
