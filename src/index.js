@@ -7,6 +7,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "./server.js";
 import { getAreaReport } from "./area-data.js";
+import {
+  averageMs,
+  classifyInputType,
+  getUsageStats,
+  recordToolUsage,
+} from "./usage-analytics.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +24,217 @@ function checkRateLimit(ip) {
   const count = (_rateCounts.get(ip) || 0) + 1;
   _rateCounts.set(ip, count);
   return count <= 60;
+}
+
+function usageDashboardAuth(req, res) {
+  const password = process.env.USAGE_DASHBOARD_PASSWORD;
+  if (!password) {
+    res.status(404).end();
+    return false;
+  }
+  const username = process.env.USAGE_DASHBOARD_USER || "admin";
+  const header = req.headers.authorization || "";
+  const [scheme, encoded] = header.split(" ");
+  let valid = false;
+  if (scheme === "Basic" && encoded) {
+    const decoded = Buffer.from(encoded, "base64").toString("utf8");
+    const splitAt = decoded.indexOf(":");
+    const suppliedUser = decoded.slice(0, splitAt);
+    const suppliedPassword = decoded.slice(splitAt + 1);
+    valid = suppliedUser === username && suppliedPassword === password;
+  }
+  if (!valid) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="MyAreaReport usage", charset="UTF-8"');
+    res.status(401).send("Authentication required");
+    return false;
+  }
+  return true;
+}
+
+function aggregateDays(days, dateKeys) {
+  const result = {
+    calls: 0,
+    success: 0,
+    error: 0,
+    totalDurationMs: 0,
+    byTool: {},
+    byInputType: {},
+    byHour: {},
+  };
+  for (const key of dateKeys) {
+    const day = days[key];
+    if (!day) continue;
+    result.calls += day.calls || 0;
+    result.success += day.success || 0;
+    result.error += day.error || 0;
+    result.totalDurationMs += day.totalDurationMs || 0;
+    for (const [tool, counter] of Object.entries(day.byTool || {})) {
+      result.byTool[tool] = mergeCounter(result.byTool[tool], counter);
+    }
+    for (const [type, counter] of Object.entries(day.byInputType || {})) {
+      result.byInputType[type] = mergeCounter(result.byInputType[type], counter);
+    }
+    for (const [hour, counter] of Object.entries(day.byHour || {})) {
+      result.byHour[hour] = mergeCounter(result.byHour[hour], counter);
+    }
+  }
+  return result;
+}
+
+function mergeCounter(existing, counter) {
+  const next = existing || { calls: 0, success: 0, error: 0, totalDurationMs: 0 };
+  next.calls += counter.calls || 0;
+  next.success += counter.success || 0;
+  next.error += counter.error || 0;
+  next.totalDurationMs += counter.totalDurationMs || 0;
+  return next;
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString("en-GB");
+}
+
+function pct(value, total) {
+  if (!total) return "0%";
+  return `${Math.round((value / total) * 100)}%`;
+}
+
+function escHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function rowsFromCounters(counters, limit = 12) {
+  return Object.entries(counters || {})
+    .sort((a, b) => (b[1].calls || 0) - (a[1].calls || 0))
+    .slice(0, limit);
+}
+
+function renderCounterCards(title, counter) {
+  const calls = counter.calls || 0;
+  return `
+    <section class="panel">
+      <h2>${escHtml(title)}</h2>
+      <div class="metric-grid">
+        <div class="metric"><span>Calls</span><strong>${formatNumber(calls)}</strong></div>
+        <div class="metric"><span>Success</span><strong>${pct(counter.success || 0, calls)}</strong></div>
+        <div class="metric"><span>Errors</span><strong>${formatNumber(counter.error || 0)}</strong></div>
+        <div class="metric"><span>Avg time</span><strong>${formatNumber(averageMs(counter))} ms</strong></div>
+      </div>
+    </section>`;
+}
+
+function renderTable(title, rows, empty = "No usage recorded yet.") {
+  const body = rows.length
+    ? rows.map(([label, counter]) => `
+      <tr>
+        <td>${escHtml(label)}</td>
+        <td>${formatNumber(counter.calls)}</td>
+        <td>${pct(counter.success || 0, counter.calls || 0)}</td>
+        <td>${formatNumber(averageMs(counter))} ms</td>
+      </tr>`).join("")
+    : `<tr><td colspan="4" class="muted">${empty}</td></tr>`;
+  return `
+    <section class="panel">
+      <h2>${escHtml(title)}</h2>
+      <table>
+        <thead><tr><th>Name</th><th>Calls</th><th>Success</th><th>Avg time</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </section>`;
+}
+
+function renderHourlyBars(hours) {
+  const entries = Array.from({ length: 24 }, (_, hour) => {
+    const key = String(hour).padStart(2, "0");
+    return [key, hours?.[key]?.calls || 0];
+  });
+  const max = Math.max(1, ...entries.map(([, count]) => count));
+  return `
+    <section class="panel">
+      <h2>Times Used Today</h2>
+      <div class="hour-grid">
+        ${entries.map(([hour, count]) => `
+          <div class="hour">
+            <span>${hour}</span>
+            <div><i style="height:${Math.max(4, Math.round((count / max) * 82))}px"></i></div>
+            <b>${formatNumber(count)}</b>
+          </div>`).join("")}
+      </div>
+    </section>`;
+}
+
+function renderUsagePage(stats) {
+  const dates = Object.keys(stats.days || {}).sort();
+  const todayKey = dates.at(-1);
+  const today = todayKey ? stats.days[todayKey] : { calls: 0, success: 0, error: 0, totalDurationMs: 0, byHour: {} };
+  const week = aggregateDays(stats.days || {}, dates.slice(-7));
+  const month = aggregateDays(stats.days || {}, dates.slice(-30));
+  const lastDays = dates.slice(-30).reverse().map((date) => [date, stats.days[date]]);
+  const updated = stats.updatedAt ? new Date(stats.updatedAt).toLocaleString("en-GB", { timeZone: stats.timeZone || "Europe/London" }) : "Never";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Usage — MyAreaReport</title>
+  <style>
+    :root { --navy:#0c2340; --blue:#1d4ed8; --bg:#eef3f8; --card:#fff; --text:#111827; --muted:#64748b; --border:#dbe3ee; --soft:#f8fafc; --green:#15803d; --red:#b91c1c; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:linear-gradient(180deg,#f8fafc 0%,var(--bg) 100%); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.45; }
+    main { width:min(1120px,calc(100% - 28px)); margin:0 auto; padding:34px 0 48px; }
+    header { display:flex; justify-content:space-between; gap:20px; align-items:flex-end; margin-bottom:18px; }
+    h1 { margin:0; color:var(--navy); font-size:clamp(2rem,5vw,3rem); letter-spacing:0; line-height:1.05; }
+    .lede { margin:8px 0 0; color:var(--muted); max-width:680px; }
+    .stamp { padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--muted); font-size:.86rem; white-space:nowrap; }
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .panel { border:1px solid var(--border); border-radius:12px; background:var(--card); box-shadow:0 10px 28px rgba(12,35,64,.06); padding:18px; margin-bottom:14px; }
+    h2 { margin:0 0 14px; color:var(--navy); font-size:1rem; }
+    .metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .metric { border:1px solid var(--border); background:var(--soft); border-radius:8px; padding:12px; }
+    .metric span { display:block; color:var(--muted); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+    .metric strong { display:block; margin-top:4px; color:var(--navy); font-size:1.45rem; line-height:1.1; }
+    table { width:100%; border-collapse:collapse; font-size:.92rem; }
+    th,td { padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; }
+    th { color:var(--muted); font-size:.76rem; text-transform:uppercase; letter-spacing:.03em; }
+    td:nth-child(n+2), th:nth-child(n+2) { text-align:right; }
+    .muted { color:var(--muted); }
+    .wide { grid-column:span 2; }
+    .hour-grid { display:grid; grid-template-columns:repeat(24,minmax(24px,1fr)); gap:6px; align-items:end; min-height:142px; }
+    .hour { display:grid; grid-template-rows:auto 90px auto; gap:6px; text-align:center; color:var(--muted); font-size:.7rem; }
+    .hour div { display:flex; align-items:end; justify-content:center; border-bottom:1px solid var(--border); }
+    .hour i { display:block; width:100%; max-width:18px; border-radius:4px 4px 0 0; background:var(--blue); opacity:.82; }
+    .privacy-note { color:var(--muted); font-size:.86rem; margin-top:10px; }
+    @media (max-width:860px) { header { display:block; } .stamp { display:inline-block; margin-top:12px; white-space:normal; } .grid { grid-template-columns:1fr; } .wide { grid-column:auto; } .hour-grid { overflow-x:auto; grid-template-columns:repeat(24,28px); padding-bottom:8px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Usage</h1>
+        <p class="lede">Aggregate MyAreaReport tool usage. No raw postcodes, place names, IP addresses, user IDs, coordinates, prompts, or report bodies are stored here.</p>
+      </div>
+      <div class="stamp">Last updated<br><strong>${escHtml(updated)}</strong></div>
+    </header>
+    <div class="grid">
+      ${renderCounterCards("Today", today)}
+      ${renderCounterCards("Last 7 Days", week)}
+      ${renderCounterCards("Last 30 Days", month)}
+      <div class="wide">${renderHourlyBars(today.byHour || {})}</div>
+      ${renderTable("Tool Usage, Last 30 Days", rowsFromCounters(month.byTool))}
+      ${renderTable("Input Types, Last 30 Days", rowsFromCounters(month.byInputType))}
+      ${renderTable("Daily Usage", lastDays)}
+    </div>
+    <p class="privacy-note">Retention: aggregate daily counters are retained for ${formatNumber(process.env.USAGE_STATS_RETAIN_DAYS || 400)} days by default. This page uses Basic Auth and sets no tracking cookie.</p>
+  </main>
+</body>
+</html>`;
 }
 
 export async function startStreamableHttpServer(createMcpServer) {
@@ -37,6 +254,19 @@ export async function startStreamableHttpServer(createMcpServer) {
       });
     } catch {
       res.status(503).json({ status: "not_ready", service: "MyAreaReport MCP", reason: "dist_missing" });
+    }
+  });
+
+  app.get("/usage", async (req, res) => {
+    if (!usageDashboardAuth(req, res)) return;
+    try {
+      const stats = await getUsageStats();
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      res.send(renderUsagePage(stats));
+    } catch (err) {
+      console.error("[usage] dashboard error:", err.message);
+      res.status(500).send("Usage dashboard unavailable");
     }
   });
 
@@ -607,8 +837,19 @@ export async function startStreamableHttpServer(createMcpServer) {
     }
     const method = req.body?.method;
     const toolName = req.body?.params?.name;
+    const toolArgs = req.body?.params?.arguments || {};
+    const startedAt = Date.now();
     if (method === "tools/call") {
       console.log(`[tool] ${toolName}`);
+      const inputType = classifyInputType(toolArgs.postcode || toolArgs.query);
+      res.on("finish", () => {
+        recordToolUsage({
+          tool: toolName,
+          inputType,
+          status: res.statusCode < 400 ? "success" : "error",
+          durationMs: Date.now() - startedAt,
+        }).catch((err) => console.error("[usage] record failed:", err.message));
+      });
     }
 
     const server = createMcpServer();

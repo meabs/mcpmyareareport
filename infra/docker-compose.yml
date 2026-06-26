@@ -12,6 +12,11 @@ services:
       NODE_ENV: production
       PORT: "3001"
       MCP_APP_UI_DOMAIN: ${MCP_APP_UI_DOMAIN:-https://mcp.myareareport.com}
+      USAGE_STATS_FILE: /app/data/usage-stats.json
+      USAGE_DASHBOARD_USER: ${USAGE_DASHBOARD_USER:-admin}
+      USAGE_DASHBOARD_PASSWORD: ${USAGE_DASHBOARD_PASSWORD:-}
+    volumes:
+      - myareareport_usage_data:/app/data
     expose:
       - "3001"
 
@@ -35,3 +40,4 @@ services:
 volumes:
   myareareport_caddy_data:
   myareareport_caddy_config:
+  myareareport_usage_data:
