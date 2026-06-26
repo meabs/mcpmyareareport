@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "./server.js";
 import { getAreaReport } from "./area-data.js";
+import { getUsAreaReport, isLikelyUsInput } from "./us-area-data.js";
 import {
   averageMs,
   classifyInputType,
@@ -356,8 +357,8 @@ export async function startStreamableHttpServer(createMcpServer) {
       schema_version: "v1",
       name_for_human: "MyAreaReport",
       name_for_model: "myareareport",
-      description_for_human: "UK area intelligence — crime statistics, flood warnings, house prices, fuel prices and road traffic from official government data.",
-      description_for_model: "Provides UK area intelligence for any postcode or place name: street-level crime statistics from Police UK, flood warnings and river levels from the Environment Agency, house prices from HM Land Registry, live fuel prices from GOV.UK Fuel Finder, and road traffic from National Highways. User-submitted postcodes and place names are used only to retrieve requested public data and are not stored by MyAreaReport after the request completes.",
+      description_for_human: "UK and USA area intelligence — crime and safety trends, flood or weather alerts, housing, fuel, and road context from public data.",
+      description_for_model: "Provides UK and USA area intelligence for supported postcodes, ZIP codes, addresses, and place names. UK results include street-level crime from Police UK, flood warnings and river levels from the Environment Agency, house prices from HM Land Registry, live fuel prices from GOV.UK Fuel Finder, and road traffic from National Highways and DfT. USA results use public sources such as U.S. Census geocoding and ACS indicators, National Weather Service alerts, USGS monitoring stations, FBI Crime Data where configured, EIA fuel price indicators, NREL alternative-fuel station locations, and OpenStreetMap road context. USA crime, property, roads, and fuel results include caveats because national USA coverage is not the same as UK street-level coverage. User-submitted lookup inputs are used only to retrieve requested public data and are not stored by MyAreaReport after the request completes.",
       auth: { type: "none" },
       api: { type: "mcp", url: "https://mcp.myareareport.com/mcp" },
       logo_url: "https://mcp.myareareport.com/logo.png",
@@ -544,16 +545,16 @@ export async function startStreamableHttpServer(createMcpServer) {
     <header class="policy-hero">
       <div class="brand-row"><span class="brand-mark">M</span><span>MyAreaReport</span></div>
       <h1>Privacy Policy</h1>
-      <p class="lede">How MyAreaReport handles postcode lookups, public area data, AI-assistant context, retention, and user controls.</p>
+      <p class="lede">How MyAreaReport handles UK and USA area lookups, public area data, AI-assistant context, retention, and user controls.</p>
       <div class="meta-grid">
         <div class="meta-card"><strong>Service</strong><a href="https://mcp.myareareport.com">mcp.myareareport.com</a></div>
-        <div class="meta-card"><strong>Last updated and effective</strong>25 June 2026</div>
+        <div class="meta-card"><strong>Last updated and effective</strong>26 June 2026</div>
       </div>
     </header>
     <section class="policy-content">
 
   <h2>Who we are and what we do</h2>
-  <p>MyAreaReport is a read-only UK area information service operated by MyAreaReport. It runs as an MCP app for AI assistants such as ChatGPT and retrieves public area data for a UK postcode, outcode, or place name you provide. Contact: <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
+  <p>MyAreaReport is a read-only UK and USA area information service operated by MyAreaReport. It runs as an MCP app for AI assistants such as ChatGPT and retrieves public area data for a UK postcode, UK place name, USA ZIP code, USA address, or USA city/state you provide. Contact: <a href="mailto:garry@myareareport.com">garry@myareareport.com</a>.</p>
   <p class="note">MyAreaReport does not provide user accounts, payments, newsletters, targeted advertising, or profiling.</p>
 
   <h2>Sources of information</h2>
@@ -562,9 +563,9 @@ export async function startStreamableHttpServer(createMcpServer) {
   <h2>Data collected or processed</h2>
   <p>Depending on the tool or app screen used, MyAreaReport may process the following data:</p>
   <ul>
-    <li><strong>User inputs:</strong> UK postcode, outcode, or place name supplied to tools such as area-search, area-crime, area-flood, area-property, area-roads, area-fuel, and the app search form.</li>
-    <li><strong>Resolved area data:</strong> postcode, latitude/longitude, district, county, region, and approximate-place metadata returned by geocoding.</li>
-    <li><strong>Public report outputs:</strong> crime categories, incident counts, outcomes, trends, stop-and-search summaries, flood warnings and alerts, monitoring station readings, Land Registry property summaries and recent sales, traffic counts, road sensor summaries, fuel station names, fuel prices, distances, and map tile coordinates.</li>
+    <li><strong>User inputs:</strong> UK postcode, UK outcode, UK place name, USA ZIP code, USA address, or USA city/state supplied to tools such as area-search, area-crime, area-flood, area-property, area-roads, area-fuel, and the app search form.</li>
+    <li><strong>Resolved area data:</strong> postcode or ZIP, latitude/longitude, district, city, county, state, region, country, and approximate-place metadata returned by geocoding.</li>
+    <li><strong>Public report outputs:</strong> crime categories, incident counts, outcomes, trends, stop-and-search summaries where available, flood warnings and alerts, weather alerts, monitoring station readings, UK Land Registry property summaries and recent sales, USA Census housing indicators, traffic counts where available, road sensor or road-context summaries, fuel station names, fuel prices or fuel price indicators, alternative-fuel station locations, distances, and map tile coordinates.</li>
     <li><strong>AI-assistant context:</strong> after a report loads, the app may send a concise summary of the selected area and report results back to the AI assistant so it can answer follow-up questions about the displayed report.</li>
     <li><strong>App interaction state:</strong> the app processes tab selections and app-only tool calls needed to load the selected view. In demo mode only, a local browser flag may be stored to remember demo mode on that device.</li>
     <li><strong>Technical and security data:</strong> IP addresses are held briefly in memory for rate limiting. The MyAreaReport application does not intentionally persist access logs, user lookup history, or generated reports.</li>
@@ -572,15 +573,15 @@ export async function startStreamableHttpServer(createMcpServer) {
 
   <h2>How we use information</h2>
   <ul>
-    <li>To resolve a postcode, outcode, or place name to an area.</li>
-    <li>To retrieve and display the requested public crime, flood, property, roads, fuel, and map data.</li>
+    <li>To resolve a UK postcode/place or USA ZIP/address/city-state input to an area.</li>
+    <li>To retrieve and display the requested public crime, safety, flood, weather, housing, roads, fuel, alternative-fuel station, and map data.</li>
     <li>To return tool outputs and app summaries to the AI assistant you are using.</li>
     <li>To operate, secure, and rate-limit the service.</li>
     <li>To comply with legal, platform, and security obligations.</li>
   </ul>
 
   <h2>How we disclose information</h2>
-  <p>MyAreaReport may send the postcode, outcode, place name, resolved coordinates, or derived search area to the following services when needed to answer your request:</p>
+  <p>MyAreaReport may send the postcode, ZIP code, address, place name, city/state, resolved coordinates, or derived search area to the following services when needed to answer your request:</p>
   <ul>
     <li><a href="https://data.police.uk">Police UK API</a> — crime data</li>
     <li><a href="https://environment.data.gov.uk">Environment Agency</a> — flood warnings and river levels</li>
@@ -589,19 +590,27 @@ export async function startStreamableHttpServer(createMcpServer) {
     <li><a href="https://www.developer.fuel-finder.service.gov.uk">GOV.UK Fuel Finder</a> — fuel prices</li>
     <li><a href="https://webtris.highwaysengland.co.uk">National Highways WebTRIS</a> — road traffic</li>
     <li>Department for Transport road traffic datasets — local A-road count-point data</li>
-    <li><a href="https://www.openstreetmap.org">OpenStreetMap</a> — map tiles, fetched server-side by MyAreaReport</li>
+    <li><a href="https://geocoding.geo.census.gov">U.S. Census Geocoder</a> and Census TIGERweb — USA geocoding, ZIP, city, state, county, and coordinate metadata</li>
+    <li><a href="https://api.census.gov/data.html">U.S. Census ACS API</a> — USA housing, population, tenure, rent, and related indicators when configured</li>
+    <li><a href="https://api.weather.gov">National Weather Service API</a> — USA active weather, flood, and emergency alerts</li>
+    <li><a href="https://waterservices.usgs.gov">USGS Water Data APIs</a> — USA nearby monitoring stations and water readings</li>
+    <li><a href="https://api.usa.gov/crime/fbi/cde">FBI Crime Data API</a> — USA reported crime trend data where configured and available</li>
+    <li><a href="https://www.eia.gov/opendata/">EIA Open Data</a> — USA regional or national fuel price indicators</li>
+    <li><a href="https://developer.nrel.gov/docs/transportation/alt-fuel-stations-v1/">NREL Alternative Fuel Stations API</a> — USA alternative-fuel station locations where configured</li>
+    <li><a href="https://www.openstreetmap.org">OpenStreetMap</a> and Overpass API — map tiles and nearby road context</li>
     <li>The AI assistant platform you use, such as OpenAI/ChatGPT — tool inputs, tool outputs, app UI data, and follow-up context needed to display and discuss the report</li>
     <li>Hosting and infrastructure providers used to run MyAreaReport — transient infrastructure and security data needed to operate the service</li>
   </ul>
   <p>MyAreaReport does not sell personal data and does not use your postcode or place lookup for advertising or profiling.</p>
 
   <h2>Cookies, analytics, and advertising</h2>
-  <p>MyAreaReport does not set advertising cookies, does not use third-party analytics, and does not use targeted advertising. Demo mode may use local storage on your device to remember that demo mode is enabled; this is not used for advertising or profiling.</p>
+  <p>MyAreaReport does not set advertising cookies, does not use third-party analytics, and does not use targeted advertising. It records first-party aggregate usage counters, such as tool name, broad input type, success/error status, response time, day, and hour, so the operator can understand usage and reliability. These aggregate counters do not include raw postcodes, ZIP codes, addresses, place names, coordinates, prompts, user IDs, IP addresses, or generated reports. Demo mode may use local storage on your device to remember that demo mode is enabled; this is not used for advertising or profiling.</p>
 
   <h2>Data retention</h2>
   <ul>
-    <li><strong>Postcodes, outcodes, place names, and generated reports:</strong> not stored by MyAreaReport after the request completes.</li>
+    <li><strong>Postcodes, ZIP codes, addresses, place names, coordinates, prompts, and generated reports:</strong> not stored by MyAreaReport after the request completes.</li>
     <li><strong>In-memory rate limit data:</strong> IP-based counters are cleared approximately every 60 seconds.</li>
+    <li><strong>Aggregate usage counters:</strong> daily and hourly counters are retained for the configured dashboard period, 400 days by default. They do not contain raw lookup inputs, prompts, coordinates, reports, IP addresses, or user IDs.</li>
     <li><strong>Application access and error logs:</strong> the MyAreaReport application does not intentionally persist access logs, error logs, user lookup history, or generated reports.</li>
     <li><strong>Public data caches:</strong> public fuel station, road count, and similar source datasets may be cached temporarily to improve performance. These caches do not contain user-submitted lookup history.</li>
     <li><strong>AI assistant history:</strong> conversation and tool output retention is controlled by the AI assistant platform and your settings with that platform.</li>
@@ -821,23 +830,24 @@ export async function startStreamableHttpServer(createMcpServer) {
     <header class="legal-hero">
       <div class="brand-row"><span class="brand-mark">M</span><span>MyAreaReport</span></div>
       <h1>Terms of Service</h1>
-      <p class="lede">The terms for using MyAreaReport to retrieve read-only UK area intelligence from public and official data sources.</p>
+      <p class="lede">The terms for using MyAreaReport to retrieve read-only UK and USA area intelligence from public and official data sources.</p>
       <div class="meta-grid">
         <div class="meta-card"><strong>Service</strong><a href="https://mcp.myareareport.com">mcp.myareareport.com</a></div>
-        <div class="meta-card"><strong>Last updated and effective</strong>25 June 2026</div>
+        <div class="meta-card"><strong>Last updated and effective</strong>26 June 2026</div>
       </div>
     </header>
     <section class="legal-content">
       <h2>Use of the service</h2>
-      <p>MyAreaReport provides read-only UK area information from public and official data sources. You may use the service to look up area reports for UK postcodes, outcodes, and place names.</p>
+      <p>MyAreaReport provides read-only UK and USA area information from public and official data sources. You may use the service to look up area reports for UK postcodes, UK place names, USA ZIP codes, USA addresses, and USA city/state inputs.</p>
 
       <h2>Information only</h2>
       <p class="note">The service is provided for general information and convenience. It is not legal, financial, property, insurance, safety, emergency, or professional advice.</p>
       <p>You should verify important decisions using the original data source or a qualified professional.</p>
 
       <h2>Data sources and accuracy</h2>
-      <p>Reports may include data from Police UK, the Environment Agency, Postcodes.io, HM Land Registry, National Highways, GOV.UK Fuel Finder, Department for Transport road traffic data, and OpenStreetMap.</p>
-      <p>These sources may be delayed, incomplete, unavailable, or changed by their publishers. MyAreaReport does not guarantee that any result is complete, current, or error-free.</p>
+      <p>Reports may include UK data from Police UK, the Environment Agency, Postcodes.io, HM Land Registry, National Highways, GOV.UK Fuel Finder, Department for Transport road traffic data, and OpenStreetMap.</p>
+      <p>Reports may include USA data from U.S. Census geocoding, TIGERweb, and ACS APIs, National Weather Service alerts, USGS Water Data APIs, FBI Crime Data where configured, EIA Open Data, NREL Alternative Fuel Stations where configured, OpenStreetMap, and Overpass API.</p>
+      <p>These sources may be delayed, incomplete, unavailable, or changed by their publishers. USA national data does not provide full UK-style parity: USA crime results are reported trend summaries rather than street-level incidents, USA housing results are indicators rather than recent individual sale prices, USA roads are nearby road context unless traffic counts are available, and USA fuel data is regional price or alternative-fuel context rather than live petrol station prices. MyAreaReport does not guarantee that any result is complete, current, or error-free.</p>
 
       <h2>No emergency use</h2>
       <p>Do not rely on MyAreaReport for emergency warnings or immediate safety decisions. For emergencies, contact the relevant emergency services or official authority.</p>
@@ -866,7 +876,7 @@ export async function startStreamableHttpServer(createMcpServer) {
   app.get("/api/area", async (req, res) => {
     const postcode = req.query.postcode || "SW1A 1AA";
     try {
-      const payload = await getAreaReport(postcode);
+      const payload = await (isLikelyUsInput(postcode) ? getUsAreaReport(postcode) : getAreaReport(postcode));
       res.json(payload);
     } catch (err) {
       res.status(400).json({ error: err.message });

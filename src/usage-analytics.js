@@ -97,6 +97,8 @@ export function classifyInputType(value) {
   if (!input) return "unknown";
   if (/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/.test(input)) return "postcode";
   if (/^[A-Z]{1,2}\d[A-Z\d]?$/.test(input)) return "outcode";
+  if (/^\d{5}(?:-\d{4})?$/.test(input)) return "zip";
+  if (/\d+\s+.+,\s*[A-Z]{2}\s+\d{5}/.test(input)) return "address";
   return "place";
 }
 
@@ -169,7 +171,7 @@ export async function recordToolUsage({ tool, inputType, status, durationMs }) {
   const now = new Date();
   const { date, hour } = getLocalParts(now);
   const safeTool = normaliseToolName(tool);
-  const safeInputType = ["postcode", "outcode", "place", "unknown"].includes(inputType) ? inputType : "unknown";
+  const safeInputType = ["postcode", "outcode", "zip", "address", "place", "unknown"].includes(inputType) ? inputType : "unknown";
   const safeStatus = status === "success" ? "success" : "error";
   const safeDuration = Math.max(0, Math.round(Number(durationMs) || 0));
 

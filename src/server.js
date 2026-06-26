@@ -21,6 +21,17 @@ import {
   formatToolResultText,
   warmupCaches,
 } from "./area-data.js";
+import {
+  formatUsToolResultText,
+  getUsAreaReport,
+  getUsCrimeDetail,
+  getUsFloodDetail,
+  getUsFuelData,
+  getUsPropertyData,
+  getUsRoadsData,
+  isLikelyUsInput,
+  resolveUsInput,
+} from "./us-area-data.js";
 
 // Pre-warm caches on startup (non-blocking)
 warmupCaches().catch(() => {});
@@ -43,7 +54,13 @@ const S_AREA = {
     county:        { type: "string" },
     region:        { type: "string" },
     country:       { type: "string" },
+    countryCode:   { type: "string" },
     pfa:           { type: "string" },
+    state:         { type: "string" },
+    stateFips:     { type: "string" },
+    countyFips:    { type: "string" },
+    countyGeoId:   { type: "string" },
+    zip:           { type: "string" },
     isApproximate: { type: "boolean" },
     placeName:     { type: "string" },
     outcode:       { type: "string" },
@@ -482,6 +499,59 @@ async function resolveToolQueryToPostcode(query) {
   return resolved.postcode;
 }
 
+function toolResultText(kind, payload) {
+  if (payload?.area?.countryCode === "US") {
+    return formatUsToolResultText(kind, payload) || formatToolResultText(kind, payload);
+  }
+  return formatToolResultText(kind, payload);
+}
+
+async function getAreaOverviewForQuery(query) {
+  if (isLikelyUsInput(query)) return getUsAreaReport(query);
+  const resolvedPostcode = await resolveToolQueryToPostcode(query);
+  return getAreaReport(resolvedPostcode);
+}
+
+async function getCrimeForQuery(query) {
+  if (isLikelyUsInput(query)) return getUsCrimeDetail(query);
+  const resolvedPostcode = await resolveToolQueryToPostcode(query);
+  return getCrimeDetail(resolvedPostcode);
+}
+
+async function getFloodForQuery(query) {
+  if (isLikelyUsInput(query)) return getUsFloodDetail(query);
+  const resolvedPostcode = await resolveToolQueryToPostcode(query);
+  return getFloodDetail(resolvedPostcode);
+}
+
+async function getPropertyForQuery(query) {
+  if (isLikelyUsInput(query)) return getUsPropertyData(query);
+  const resolvedPostcode = await resolveToolQueryToPostcode(query);
+  const geo = await geocodePostcode(resolvedPostcode);
+  const outcode = resolvedPostcode.trim().toUpperCase().split(/\s+/)[0];
+  const payload = await getPropertyData(outcode);
+  payload.area = geo;
+  return payload;
+}
+
+async function getRoadsForQuery(query) {
+  if (isLikelyUsInput(query)) return getUsRoadsData(query);
+  const resolvedPostcode = await resolveToolQueryToPostcode(query);
+  const geo = await geocodePostcode(resolvedPostcode);
+  const payload = await getHighwaysData(geo.lat, geo.lng);
+  payload.area = geo;
+  return payload;
+}
+
+async function getFuelForQuery(query) {
+  if (isLikelyUsInput(query)) return getUsFuelData(query);
+  const resolvedPostcode = await resolveToolQueryToPostcode(query);
+  const geo = await geocodePostcode(resolvedPostcode);
+  const payload = await getFuelPrices(geo.lat, geo.lng);
+  payload.area = geo;
+  return payload;
+}
+
 export function createServer() {
   const server = new McpServer({ name: "MyAreaReport", version: "1.0.0" });
 
@@ -492,21 +562,20 @@ export function createServer() {
     {
       title: "MyAreaReport: Area Overview",
       description:
-        "Opens the MyAreaReport dashboard for a UK postcode, outcode, or place name. Shows real crime statistics from Police UK, flood risk from the Environment Agency, and area intelligence. " +
-        "Use when the user asks about crime, safety, flood risk, or wants to explore a UK area. " +
+        "Opens the MyAreaReport dashboard for a UK postcode/place or US ZIP, city/state, or address. Shows official public area intelligence with country-specific data coverage. " +
+        "Use when the user asks about crime, safety, flood risk, housing, roads, fuel, or wants to explore a UK or USA area. " +
         "Follow-up: summarise the key findings and ask if they want to drill into crime or flood details.",
       inputSchema: {
-        postcode: z.string().describe("UK postcode, outcode, or place name, e.g. SW1A 1AA, YO1, or Chester"),
+        postcode: z.string().describe("UK postcode/outcode/place or US ZIP/city/state/address, e.g. SW1A 1AA, Chester, 10001, Austin TX, or Miami, FL"),
       },
       outputSchema: Z_OUT_OVERVIEW,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
-      const resolvedPostcode = await resolveToolQueryToPostcode(postcode);
-      const payload = await getAreaReport(resolvedPostcode);
+      const payload = await getAreaOverviewForQuery(postcode);
       return {
-        content: [{ type: "text", text: formatToolResultText("area-overview", payload) }],
+        content: [{ type: "text", text: toolResultText("area-overview", payload) }],
         structuredContent: payload,
       };
     },
@@ -519,21 +588,20 @@ export function createServer() {
     {
       title: "MyAreaReport: Crime Analysis",
       description:
-        "Shows a detailed 3-month crime breakdown for a UK postcode, outcode, or place name — category analysis, outcomes, trends, and stop & search data from the Police UK API. " +
+        "Shows UK street-level crime from Police UK, or USA reported crime trends from FBI public data where available. " +
         "Use instead of area-search when the user specifically asks about crime, safety, or policing. " +
-        "Follow-up: highlight the dominant crime category and trend direction.",
+        "Follow-up: highlight the dominant category/trend and caveat USA coverage is not street-level.",
       inputSchema: {
-        postcode: z.string().describe("UK postcode, outcode, or place name"),
+        postcode: z.string().describe("UK postcode/outcode/place or US ZIP/city/state/address"),
       },
       outputSchema: Z_OUT_CRIME,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
-      const resolvedPostcode = await resolveToolQueryToPostcode(postcode);
-      const payload = await getCrimeDetail(resolvedPostcode);
+      const payload = await getCrimeForQuery(postcode);
       return {
-        content: [{ type: "text", text: formatToolResultText("area-crime", payload) }],
+        content: [{ type: "text", text: toolResultText("area-crime", payload) }],
         structuredContent: payload,
       };
     },
@@ -546,21 +614,20 @@ export function createServer() {
     {
       title: "MyAreaReport: Flood Risk",
       description:
-        "Shows flood warnings, alerts, and river monitoring station readings for a UK postcode, outcode, or place name from the Environment Agency. " +
-        "Use when the user asks about flood risk, flooding, water levels, or the Environment Agency. " +
+        "Shows UK Environment Agency flood warnings or USA National Weather Service alerts and USGS water monitoring stations. " +
+        "Use when the user asks about flood risk, flooding, water levels, or active weather warnings. " +
         "Follow-up: explain the current risk level and whether any active warnings apply.",
       inputSchema: {
-        postcode: z.string().describe("UK postcode, outcode, or place name"),
+        postcode: z.string().describe("UK postcode/outcode/place or US ZIP/city/state/address"),
       },
       outputSchema: Z_OUT_FLOOD,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
-      const resolvedPostcode = await resolveToolQueryToPostcode(postcode);
-      const payload = await getFloodDetail(resolvedPostcode);
+      const payload = await getFloodForQuery(postcode);
       return {
-        content: [{ type: "text", text: formatToolResultText("area-flood", payload) }],
+        content: [{ type: "text", text: toolResultText("area-flood", payload) }],
         structuredContent: payload,
       };
     },
@@ -573,24 +640,20 @@ export function createServer() {
     {
       title: "MyAreaReport: House Prices",
       description:
-        "Shows recent house sale prices from the Land Registry for a UK postcode area, outcode, or place name — average and median prices, breakdown by property type (detached, semi, terraced, flat). " +
+        "Shows UK Land Registry sale prices or USA Census housing indicators where available. " +
         "Use when the user asks about house prices, property values, or the housing market in an area. " +
-        "Follow-up: highlight whether the area is above or below typical UK prices.",
+        "Follow-up: explain source coverage and avoid claiming USA individual sales.",
       inputSchema: {
-        postcode: z.string().describe("UK postcode, outcode, or place name, e.g. SW1A 1AA, YO1, or Chester"),
+        postcode: z.string().describe("UK postcode/outcode/place or US ZIP/city/state/address, e.g. SW1A 1AA, Chester, 10001, or Miami, FL"),
       },
       outputSchema: Z_OUT_PROPERTY,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
-      const resolvedPostcode = await resolveToolQueryToPostcode(postcode);
-      const geo = await geocodePostcode(resolvedPostcode);
-      const outcode = resolvedPostcode.trim().toUpperCase().split(/\s+/)[0];
-      const payload = await getPropertyData(outcode);
-      payload.area = geo;
+      const payload = await getPropertyForQuery(postcode);
       return {
-        content: [{ type: "text", text: formatToolResultText("area-property", payload) }],
+        content: [{ type: "text", text: toolResultText("area-property", payload) }],
         structuredContent: payload,
       };
     },
@@ -603,22 +666,19 @@ export function createServer() {
     {
       title: "MyAreaReport: Road Traffic",
       description:
-        "Shows how busy the roads are near a UK postcode, outcode, or place name — average daily traffic counts, heavy vehicle percentages, and a traffic level indicator (Light/Moderate/Busy/Heavy/Very heavy) from National Highways motorway and A-road sensors. " +
-        "Use when the user asks how busy the roads are, about traffic levels, congestion, road usage, or motorway data near an area.",
+        "Shows UK traffic-count summaries or USA nearby major-road context from public mapping data. " +
+        "Use when the user asks how busy the roads are, about traffic levels, congestion, road usage, or motorway/highway data near an area.",
       inputSchema: {
-        postcode: z.string().describe("UK postcode, outcode, or place name"),
+        postcode: z.string().describe("UK postcode/outcode/place or US ZIP/city/state/address"),
       },
       outputSchema: Z_OUT_ROADS,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
-      const resolvedPostcode = await resolveToolQueryToPostcode(postcode);
-      const geo = await geocodePostcode(resolvedPostcode);
-      const payload = await getHighwaysData(geo.lat, geo.lng);
-      payload.area = geo;
+      const payload = await getRoadsForQuery(postcode);
       return {
-        content: [{ type: "text", text: formatToolResultText("area-roads", payload) }],
+        content: [{ type: "text", text: toolResultText("area-roads", payload) }],
         structuredContent: payload,
       };
     },
@@ -631,23 +691,20 @@ export function createServer() {
     {
       title: "MyAreaReport: Fuel Prices",
       description:
-        "Shows live petrol and diesel prices at filling stations within 20 km of a UK postcode, outcode, or place name from the GOV.UK Fuel Finder service. " +
-        "Use when the user asks about petrol prices, diesel prices, cheap fuel, or nearby petrol stations. " +
-        "Follow-up: highlight the cheapest unleaded and diesel station.",
+        "Shows UK live petrol/diesel prices, or USA regional EIA fuel price trends and alternative-fuel station locations where available. " +
+        "Use when the user asks about petrol prices, diesel prices, cheap fuel, or nearby fuel/charging stations. " +
+        "Follow-up: caveat that USA v1 does not provide live station-level petrol prices.",
       inputSchema: {
-        postcode: z.string().describe("UK postcode, outcode, or place name"),
+        postcode: z.string().describe("UK postcode/outcode/place or US ZIP/city/state/address"),
       },
       outputSchema: Z_OUT_FUEL,
       annotations: HINTS,
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ postcode }) => {
-      const resolvedPostcode = await resolveToolQueryToPostcode(postcode);
-      const geo = await geocodePostcode(resolvedPostcode);
-      const payload = await getFuelPrices(geo.lat, geo.lng);
-      payload.area = geo;
+      const payload = await getFuelForQuery(postcode);
       return {
-        content: [{ type: "text", text: formatToolResultText("area-fuel", payload) }],
+        content: [{ type: "text", text: toolResultText("area-fuel", payload) }],
         structuredContent: payload,
       };
     },
@@ -659,13 +716,20 @@ export function createServer() {
     "area-app-search",
     {
       title: "Area search",
-      description: "Resolve a postcode or place name entered in the search form and return area metadata for app bootstrap.",
-      inputSchema: { query: z.string().describe("UK postcode or place name (e.g. 'Chester', 'SW1A 2AA')") },
+      description: "Resolve a UK or USA area entered in the search form and return area metadata for app bootstrap.",
+      inputSchema: { query: z.string().describe("UK postcode/place or US ZIP/city/state/address") },
       outputSchema: Z_OUT_LOADING,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ query }) => {
+      if (isLikelyUsInput(query)) {
+        const area = await resolveUsInput(query);
+        return {
+          content: [{ type: "text", text: `Area loaded: ${area.postcode}` }],
+          structuredContent: { kind: 'area-loading', area },
+        };
+      }
       const resolved = await resolveInputToPostcode(query);
       const area = await geocodePostcode(resolved.postcode);
       if (resolved.isApproximate) {
@@ -687,14 +751,14 @@ export function createServer() {
     "area-app-crime",
     {
       title: "Load crime detail",
-      description: "Fetch detailed crime data for the current area.",
+      description: "Fetch detailed UK crime data or USA reported crime trend data for the current area.",
       inputSchema: { postcode: z.string() },
       outputSchema: Z_OUT_CRIME,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
-      const payload = await getCrimeDetail(postcode);
+      const payload = await getCrimeForQuery(postcode);
       return {
         content: [{ type: "text", text: `Crime detail loaded` }],
         structuredContent: payload,
@@ -708,14 +772,14 @@ export function createServer() {
     "area-app-flood",
     {
       title: "Load flood detail",
-      description: "Fetch detailed flood data for the current area.",
+      description: "Fetch detailed UK flood data or USA weather alert and USGS water data for the current area.",
       inputSchema: { postcode: z.string() },
       outputSchema: Z_OUT_FLOOD,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
-      const payload = await getFloodDetail(postcode);
+      const payload = await getFloodForQuery(postcode);
       return {
         content: [{ type: "text", text: `Flood detail loaded` }],
         structuredContent: payload,
@@ -729,13 +793,20 @@ export function createServer() {
     "area-app-property",
     {
       title: "Load property prices",
-      description: "Fetch Land Registry house price data for the current area.",
+      description: "Fetch UK Land Registry property data or USA housing indicators for the current area.",
       inputSchema: { postcode: z.string() },
       outputSchema: Z_OUT_PROPERTY,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
+      if (isLikelyUsInput(postcode)) {
+        const payload = await getUsPropertyData(postcode);
+        return {
+          content: [{ type: "text", text: `Property data loaded for ${payload.outcode}` }],
+          structuredContent: payload,
+        };
+      }
       const outcode = postcode.trim().toUpperCase().split(/\s+/)[0];
       const payload = await getPropertyData(outcode);
       return {
@@ -751,16 +822,14 @@ export function createServer() {
     "area-app-fuel",
     {
       title: "Load fuel prices",
-      description: "Fetch GOV.UK Fuel Finder prices for petrol stations near the current area.",
+      description: "Fetch UK GOV.UK Fuel Finder prices or USA fuel and alternative-fuel context for the current area.",
       inputSchema: { postcode: z.string() },
       outputSchema: Z_OUT_FUEL,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
-      const geo = await geocodePostcode(postcode);
-      const payload = await getFuelPrices(geo.lat, geo.lng);
-      payload.area = geo;
+      const payload = await getFuelForQuery(postcode);
       return {
         content: [{ type: "text", text: `Fuel prices loaded` }],
         structuredContent: payload,
@@ -774,16 +843,14 @@ export function createServer() {
     "area-app-roads",
     {
       title: "Load road traffic data",
-      description: "Fetch National Highways traffic monitoring data for the current area.",
+      description: "Fetch UK traffic monitoring data or USA road context for the current area.",
       inputSchema: { postcode: z.string() },
       outputSchema: Z_OUT_ROADS,
       annotations: HINTS,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ postcode }) => {
-      const geo = await geocodePostcode(postcode);
-      const payload = await getHighwaysData(geo.lat, geo.lng);
-      payload.area = geo;
+      const payload = await getRoadsForQuery(postcode);
       return {
         content: [{ type: "text", text: `Roads data loaded` }],
         structuredContent: payload,
@@ -798,7 +865,7 @@ export function createServer() {
     RESOURCE_URI,
     {
       mimeType: RESOURCE_MIME_TYPE,
-      description: "MyAreaReport — UK area intelligence: crime, flood, and environment data from official government APIs.",
+      description: "MyAreaReport — UK and USA area intelligence from official and public data APIs.",
       _meta: UI_RESOURCE_META,
     },
     async () => {

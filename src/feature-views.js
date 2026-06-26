@@ -107,6 +107,8 @@ function riskLabel(level) {
 }
 
 function crimeAvgChip(crime) {
+  if (crime?.status === "unavailable") return '<span class="crime-avg-chip crime-near">trend unavailable</span>';
+  if (crime?.source?.includes("FBI")) return '<span class="crime-avg-chip crime-near">FBI trend data</span>';
   if (crime?.vsAvg == null) return '';
   const pct = crime.vsAvg;
   const sign = pct >= 0 ? '+' : '';
@@ -233,7 +235,8 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const el = document.getElementById("stat-row");
     if (!el || !state.area) return;
     const { crime, flood, month } = state;
-    const crimeVal  = crime  ? crime.total  : `<span class="stat-loading">…</span>`;
+    const isUs = state.area.countryCode === "US";
+    const crimeVal  = crime  ? (crime.status === "unavailable" ? "n/a" : crime.total)  : `<span class="stat-loading">…</span>`;
     const crimeChip = crime  ? crimeAvgChip(crime) : `<span class="stat-loading">loading</span>`;
     const floodVal  = flood
       ? `${flood.warnings} <span style="font-size:0.9rem;font-weight:500">warnings</span>`
@@ -244,7 +247,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     el.innerHTML = `
       <div class="stat-card" data-action="tab-crime" title="View crime details">
         <div class="stat-card-icon">🔎</div>
-        <div class="stat-card-label">Total crimes</div>
+        <div class="stat-card-label">${isUs ? "Crime trend" : "Total crimes"}</div>
         <div class="stat-card-value">${crimeVal}</div>
         <div class="stat-card-sub">${crimeChip}</div>
       </div>
@@ -256,9 +259,9 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       </div>
       <div class="stat-card" style="cursor:default">
         <div class="stat-card-icon">📅</div>
-        <div class="stat-card-label">Data month</div>
-        <div class="stat-card-value" style="font-size:1rem">${fmtMonth(month)}</div>
-        <div class="stat-card-sub">Police UK · EA</div>
+        <div class="stat-card-label">${isUs ? "Data year" : "Data month"}</div>
+        <div class="stat-card-value" style="font-size:1rem">${isUs ? month : fmtMonth(month)}</div>
+        <div class="stat-card-sub">${isUs ? "Census · NWS · USGS" : "Police UK · EA"}</div>
       </div>
       <div class="stat-card" style="cursor:default">
         <div class="stat-card-icon">📍</div>
@@ -282,8 +285,9 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const el = document.getElementById("overview-next");
     if (!el) return;
 
+    const isUs = state.area?.countryCode === "US";
     const crimeSummary = state.crime
-      ? `${state.crime.total} crimes · ${state.crime.categories?.[0]?.label || 'category breakdown'}`
+      ? `${state.crime.status === "unavailable" ? "trend unavailable" : `${state.crime.total} records`} · ${state.crime.categories?.[0]?.label || (isUs ? 'reported trend' : 'category breakdown')}`
       : 'Loading crime detail';
     const floodSummary = state.flood
       ? `${state.flood.warnings} warnings · ${state.flood.alerts} alerts`
@@ -298,7 +302,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
           <button class="overview-link-card" id="overview-crime-link" type="button">
             <span class="overview-link-icon">🔎</span>
             <span class="overview-link-copy">
-              <strong>Crime analysis</strong>
+              <strong>${isUs ? 'Crime trends' : 'Crime analysis'}</strong>
               <small>${crimeSummary}</small>
             </span>
             <span class="overview-link-arrow">→</span>
@@ -361,6 +365,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const el = document.getElementById(bodyId);
     const crime = state.crimeDetail || state.crime;
     if (!el || !crime || !state.area) return;
+    const isUs = state.area.countryCode === "US";
 
     el.innerHTML = `
       <div class="section">
@@ -371,16 +376,17 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         <div class="section-body">
           <div id="${bodyId}-trend" class="trend-chart"></div>
           <p style="font-size:0.72rem;color:var(--muted);margin-top:8px">
-            ${crime.total} incidents in ${fmtMonth(state.month)}
-            ${crime.trend ? ` · 3-month view` : ''}
+            ${crime.status === "unavailable" ? "Trend unavailable" : `${crime.total} ${isUs ? "reported records" : "incidents"}`} in ${isUs ? state.month : fmtMonth(state.month)}
+            ${crime.trend?.length ? ` · ${isUs ? "multi-year trend" : "3-month view"}` : ''}
           </p>
+          ${crime.caveat ? `<p style="font-size:0.72rem;color:var(--muted);margin-top:8px">${escHtml(crime.caveat)}</p>` : ''}
         </div>
       </div>
 
       <div class="section">
         <div class="section-header">
           <h2 class="section-title">By category</h2>
-          <span class="month-badge">${fmtMonth(state.month)}</span>
+          <span class="month-badge">${isUs ? state.month : fmtMonth(state.month)}</span>
         </div>
         <div class="section-body">
           <div id="${bodyId}-bars" class="crime-bar-list"></div>
@@ -401,7 +407,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         <div class="section-body">
           <div class="ss-stat">
             <div class="ss-number">${crime.stopSearch.total}</div>
-            <div class="ss-label">Stop and search records this month in this area</div>
+            <div class="ss-label">${isUs ? "Stop/search data is not available nationally in this view" : "Stop and search records this month in this area"}</div>
           </div>
           ${crime.stopSearch.reasons?.length ? `
           <p style="font-size:0.78rem;font-weight:600;color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:0.04em">By object of search</p>
@@ -410,7 +416,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       </div>` : ''}
 
       <p style="font-size:0.7rem;color:var(--muted);padding:4px 0">
-        Source: Police UK API · Data is anonymised and location-snapped to the nearest street node.
+        Source: ${escHtml(crime.source || "Police UK API")} · ${isUs ? "USA reported crime trends are not street-level incident data." : "Data is anonymised and location-snapped to the nearest street node."}
       </p>
     `;
 
@@ -468,6 +474,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const el = document.getElementById(bodyId);
     const flood = state.floodDetail || state.flood;
     if (!el || !flood || !state.area) return;
+    const isUs = state.area.countryCode === "US";
 
     el.innerHTML = `
       <div class="section">
@@ -498,7 +505,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       </div>
 
       <p style="font-size:0.7rem;color:var(--muted);padding:4px 0">
-        Source: Environment Agency Flood Monitoring API · Real-time data. Warnings apply to ${state.area.county || state.area.district} county area.
+        Source: ${escHtml(flood.source || "Environment Agency Flood Monitoring API")} · ${isUs ? "NWS alerts and USGS observations are not emergency advice." : `Real-time data. Warnings apply to ${state.area.county || state.area.district} county area.`}
       </p>
     `;
 
@@ -540,27 +547,28 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const data = state.propertyDetail;
     if (!el || !data) return;
 
-    const fmtPrice = p => p ? `£${p.toLocaleString('en-GB')}` : 'n/a';
+    const isUs = data.area?.countryCode === "US";
+    const fmtPrice = p => p ? `${isUs ? '$' : '£'}${p.toLocaleString('en-GB')}` : 'n/a';
     const maxAvg = data.avgByType?.[0]?.avg || 1;
 
     el.innerHTML = `
       <div class="section">
         <div class="section-header">
-          <h2 class="section-title">House prices — ${data.outcode}</h2>
+          <h2 class="section-title">${isUs ? 'Housing indicators' : 'House prices'} — ${data.outcode}</h2>
           <span class="month-badge">Since ${data.since?.slice(0, 7)}</span>
         </div>
         <div class="section-body">
           <div class="price-summary-row">
             <div class="price-summary-card">
-              <div class="price-summary-label">Average</div>
+              <div class="price-summary-label">${isUs ? 'Median value' : 'Average'}</div>
               <div class="price-summary-value">${fmtPrice(data.avgPrice)}</div>
             </div>
             <div class="price-summary-card">
-              <div class="price-summary-label">Median</div>
+              <div class="price-summary-label">${isUs ? 'Median value' : 'Median'}</div>
               <div class="price-summary-value">${fmtPrice(data.medianPrice)}</div>
             </div>
             <div class="price-summary-card">
-              <div class="price-summary-label">Sales recorded</div>
+              <div class="price-summary-label">${isUs ? 'Population' : 'Sales recorded'}</div>
               <div class="price-summary-value">${data.totalCount}</div>
             </div>
           </div>
@@ -586,6 +594,8 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         </div>
       </div>` : ''}
 
+      ${data.caveat ? `<div class="empty-state">${escHtml(data.caveat)}</div>` : ''}
+
       ${data.sales?.length ? `
       <div class="section">
         <div class="section-header"><h2 class="section-title">Recent sales</h2></div>
@@ -605,10 +615,10 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
             `).join('')}
           </div>
         </div>
-      </div>` : `<div class="empty-state">No property sales found for ${data.outcode} in the last 2 years.</div>`}
+      </div>` : (!isUs ? `<div class="empty-state">No property sales found for ${data.outcode} in the last 2 years.</div>` : '')}
 
       <p style="font-size:0.7rem;color:var(--muted);padding:4px 0">
-        Source: HM Land Registry Price Paid Data · Open Government Licence v3.0
+        Source: ${escHtml(data.source || 'HM Land Registry Price Paid Data')} ${isUs ? '· USA indicators, not individual sale records' : '· Open Government Licence v3.0'}
       </p>
     `;
 
@@ -717,7 +727,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       ${webTrisSection}
       ${localRoadsSection}
       <p style="font-size:0.7rem;color:var(--muted);padding:4px 0">
-        Sources: National Highways WebTRIS (motorway & trunk A-road sensors, monthly averages)
+        Sources: ${escHtml(data.source || 'National Highways WebTRIS (motorway & trunk A-road sensors, monthly averages)')}
         ${hasLocal ? '· DfT Road Traffic Statistics (local A-roads, annual count-point survey)' : ''}
       </p>
     `;
@@ -761,34 +771,39 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         ? 'Fuel price data is not configured on this server.'
         : reason === 'auth_failed'
         ? 'Fuel price data authentication failed on this server. Please check Fuel Finder credentials.'
-        : 'Fuel price data is temporarily unavailable. Please try again shortly.';
+        : 'Fuel or alternative fuel data is temporarily unavailable. Please try again shortly.';
       el.innerHTML = `<div class="empty-state">${msg}</div>`;
       notifyHostSize();
       return;
     }
 
-    if (status === 'no_results' || !data.stations?.length) {
-      el.innerHTML = `<div class="empty-state">No petrol stations found within 20 km of this postcode.</div>`;
+    const isUs = data.area?.countryCode === "US";
+    const hasAnyPrice = Object.keys(data.cheapest || {}).length > 0;
+
+    if (status === 'no_results' || (!data.stations?.length && !hasAnyPrice)) {
+      el.innerHTML = `<div class="empty-state">${isUs ? 'No USA fuel or alternative fuel data found for this area.' : 'No petrol stations found within 20 km of this postcode.'}</div>`;
       notifyHostSize();
       return;
     }
 
     const fuelTypes = ['E10', 'E5', 'B7_STANDARD', 'B7_PREMIUM'];
-    const available = fuelTypes.filter(ft => data.stations.some(s => s.prices[ft] != null));
+    const available = isUs
+      ? Object.keys(data.cheapest || {})
+      : fuelTypes.filter(ft => data.stations.some(s => s.prices[ft] != null));
 
     const cheapestRow = available.map(ft => {
       const c = data.cheapest?.[ft];
       if (!c) return '';
       return `
         <div class="fuel-cheapest-card">
-          <div class="fuel-cheapest-label">Cheapest ${FUEL_LABELS[ft] || ft}</div>
-          <div class="fuel-cheapest-price">${c.price}<span class="fuel-cheapest-unit">p/litre</span></div>
-          <div class="fuel-cheapest-station">${escHtml(c.name)} · ${c.distKm} km</div>
+          <div class="fuel-cheapest-label">${isUs ? 'Latest' : 'Cheapest'} ${FUEL_LABELS[ft] || ft}</div>
+          <div class="fuel-cheapest-price">${c.price}<span class="fuel-cheapest-unit">${isUs ? '$/gal' : 'p/litre'}</span></div>
+          <div class="fuel-cheapest-station">${escHtml(c.name)}${c.distKm ? ` · ${c.distKm} km` : ''}</div>
         </div>
       `;
     }).join('');
 
-    const rows = data.stations.map(s => {
+    const rows = (data.stations || []).map(s => {
       const prices = available.map(ft =>
         s.prices[ft] != null
           ? `<td class="fuel-price-cell" data-label="${FUEL_LABELS[ft] || ft}">${s.prices[ft]}p</td>`
@@ -813,13 +828,13 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         <div class="section-header">
           <h2 class="section-title">Cheapest nearby</h2>
         </div>
-        <div class="fuel-cheapest-row">${cheapestRow}</div>
+        <div class="fuel-cheapest-row">${cheapestRow || `<div class="empty-state">${escHtml(data.caveat || 'No price data available for this area.')}</div>`}</div>
       </div>
 
       <div class="section">
         <div class="section-header">
-          <h2 class="section-title">All stations within 5 km</h2>
-          <span class="month-badge">${data.stations.length} stations within 20 km</span>
+          <h2 class="section-title">${isUs ? 'Alternative fuel stations' : 'All stations within 5 km'}</h2>
+          <span class="month-badge">${data.stations.length} stations within ${isUs ? '10 miles' : '20 km'}</span>
         </div>
         <div class="section-body" style="padding:0;overflow-x:auto">
           <table class="fuel-table">
@@ -830,13 +845,13 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
                 ${headers}
               </tr>
             </thead>
-            <tbody>${rows}</tbody>
+            <tbody>${rows || `<tr><td colspan="${2 + available.length}" class="fuel-price-na">No alternative-fuel station locations returned for this area.</td></tr>`}</tbody>
           </table>
         </div>
       </div>
 
       <p style="font-size:0.7rem;color:var(--muted);padding:4px 0">
-        Source: GOV.UK Fuel Finder · Motor Fuel Price (Open Data) Regulations 2025. Prices in pence per litre.
+        Source: ${escHtml(data.source || 'GOV.UK Fuel Finder')} · ${isUs ? 'USA regional price/alternative fuel data, not live petrol station prices.' : 'Motor Fuel Price (Open Data) Regulations 2025. Prices in pence per litre.'}
       </p>
     `;
     notifyHostSize();
@@ -876,7 +891,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       <span class="approx-icon">📍</span>
       <span>Showing results for <strong>${area.placeName}</strong> using nearby postcode <strong>${area.postcode}</strong>
       ${area.localType ? `(${area.localType})` : ''}.
-      For precise data, enter a full postcode.</span>
+      For precise data, enter a full postcode or ZIP.</span>
     `;
   }
 
@@ -896,7 +911,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Searching…"; }
 
       const result = await callServerTool("area-app-search", { query: raw }).catch(() => {
-        if (errEl) { errEl.textContent = `Could not find "${raw}". Try a UK postcode (e.g. SW1A 2AA) or place name.`; errEl.classList.remove("hidden"); }
+        if (errEl) { errEl.textContent = `Could not find "${raw}". Try a UK postcode, US ZIP, or city/state.`; errEl.classList.remove("hidden"); }
         return null;
       });
 

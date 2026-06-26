@@ -75,6 +75,6 @@ test("area-app-search metadata matches its bootstrap-only behavior", async (t) =
   assert.ok(tool, "area-app-search should be registered");
   assert.equal(
     tool.description,
-    "Resolve a postcode or place name entered in the search form and return area metadata for app bootstrap.",
+    "Resolve a UK or USA area entered in the search form and return area metadata for app bootstrap.",
   );
 });

@@ -109,17 +109,21 @@ function pushModelContext(eventName, payload) {
   }
   if (payload?.crime) {
     const pct = payload.crime.vsAvg;
-    const vs = pct != null ? ` (${pct >= 0 ? '+' : ''}${pct}% vs E&W avg)` : '';
-    lines.push(`Crime: ${payload.crime.total} incidents${vs}`);
+    const isUs = payload.area?.countryCode === "US";
+    const vs = !isUs && pct != null ? ` (${pct >= 0 ? '+' : ''}${pct}% vs E&W avg)` : '';
+    lines.push(`Crime: ${payload.crime.status === "unavailable" ? "trend unavailable" : `${payload.crime.total} records`}${vs}`);
     if (payload.crime.categories?.length) {
       lines.push(`Top category: ${payload.crime.categories[0].label} (${payload.crime.categories[0].count})`);
     }
+    if (payload.crime.caveat) lines.push(`Caveat: ${payload.crime.caveat}`);
   }
   if (payload?.flood) {
     lines.push(`Flood: ${payload.flood.warnings} warnings, ${payload.flood.alerts} alerts`);
+    if (payload.flood.caveat) lines.push(`Flood caveat: ${payload.flood.caveat}`);
   }
   if (payload?.avgPrice) {
-    lines.push(`Avg house price (${payload.outcode}): £${payload.avgPrice.toLocaleString('en-GB')}`);
+    const currency = payload.area?.countryCode === "US" ? "$" : "£";
+    lines.push(`Housing indicator (${payload.outcode}): ${currency}${payload.avgPrice.toLocaleString('en-GB')}`);
   }
   if (payload?.sites?.length) {
     const s = payload.sites.find(s => s.report);
@@ -135,7 +139,7 @@ function pushModelContext(eventName, payload) {
     } else if (payload.cheapest) {
       const cheapest = Object.entries(payload.cheapest)[0]?.[1];
       if (cheapest) {
-        lines.push(`Fuel: cheapest nearby is ${cheapest.name} at ${cheapest.price}p/litre (${cheapest.distKm} km)`);
+        lines.push(`Fuel: ${cheapest.name} at ${cheapest.price}${payload.area?.countryCode === "US" ? " USD/gal" : "p/litre"} (${cheapest.distKm} km)`);
       }
     } else {
       lines.push(`Fuel: ${payload.stations?.length ?? 0} nearby stations`);

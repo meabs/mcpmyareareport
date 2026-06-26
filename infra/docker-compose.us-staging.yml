@@ -1,0 +1,27 @@
+services:
+  us_mcp:
+    container_name: myareareport-us-mcp
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: myareareport-us-mcp:latest
+    restart: unless-stopped
+    env_file:
+      - ../.env.us-staging
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      MCP_APP_UI_DOMAIN: ${MCP_APP_UI_DOMAIN:-https://us-staging.myareareport.com}
+      USAGE_STATS_FILE: /app/data/usage-stats.json
+      USAGE_DASHBOARD_USER: ${USAGE_DASHBOARD_USER:-admin}
+      USAGE_DASHBOARD_PASSWORD: ${USAGE_DASHBOARD_PASSWORD:-}
+      HOST_PROC_PATH: /host/proc
+      USAGE_DISK_PATH: /app/data
+    volumes:
+      - myareareport_us_usage_data:/app/data
+      - /proc:/host/proc:ro
+    ports:
+      - "127.0.0.1:${US_STAGING_PORT:-3004}:3001"
+
+volumes:
+  myareareport_us_usage_data:

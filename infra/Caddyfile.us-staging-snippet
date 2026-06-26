@@ -1,0 +1,8 @@
+# Add this host block to the production reverse proxy only after DNS for the
+# staging hostname points at the VPS. The staging MCP container is intentionally
+# separate from the approved production stack.
+
+us-staging.myareareport.com {
+  encode gzip zstd
+  reverse_proxy 127.0.0.1:3004
+}

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light" />
-    <title>MyAreaReport — UK Area Intelligence</title>
+    <title>MyAreaReport — UK & USA Area Intelligence</title>
   </head>
   <body>
     <main id="app-root" class="app-shell">
@@ -23,34 +23,35 @@
             <div class="brand-mark">M</div>
             <div>
               <h1 class="brand-title">MyAreaReport</h1>
-              <p class="brand-strapline">UK Area Intelligence</p>
+              <p class="brand-strapline">UK & USA Area Intelligence</p>
             </div>
           </div>
           <p class="search-intro">
-            Enter a UK postcode to explore real crime statistics, flood risk data,
-            and area intelligence from official government sources.
+            Enter a UK postcode or US ZIP/city to explore crime, flood, housing,
+            road, and fuel intelligence from official and public sources.
           </p>
           <form id="search-form" class="search-form" autocomplete="off">
             <div class="search-input-row">
               <input id="search-input" type="text" class="search-input"
-                placeholder="e.g. SW1A 2AA, Leeds, Chester"
+                placeholder="e.g. SW1A 2AA, Chester, 10001, Miami, FL"
                 spellcheck="false" autocapitalize="words" />
               <button type="submit" class="search-btn">Search</button>
             </div>
             <p id="search-error" class="search-error hidden"></p>
             <p class="search-hint">
               Try: <button type="button" class="hint-chip" data-postcode="SW1A 2AA">SW1A 2AA</button>
-              <button type="button" class="hint-chip" data-postcode="M1 1AE">M1 1AE</button>
+              <button type="button" class="hint-chip" data-postcode="10001">10001</button>
               <button type="button" class="hint-chip" data-postcode="YO1 9RD">YO1 9RD</button>
-              <button type="button" class="hint-chip" data-postcode="BS1 4ST">BS1 4ST</button>
+              <button type="button" class="hint-chip" data-postcode="Miami, FL">Miami, FL</button>
             </p>
           </form>
           <div class="source-badges">
             <span class="source-badge">Police UK API</span>
             <span class="source-badge">Environment Agency</span>
+            <span class="source-badge">U.S. Census</span>
+            <span class="source-badge">NWS · USGS</span>
             <span class="source-badge">Land Registry</span>
-            <span class="source-badge">National Highways</span>
-            <span class="source-badge">Open Government Licence</span>
+            <span class="source-badge">FBI · EIA · OSM</span>
           </div>
         </div>
       </div>
@@ -162,12 +163,16 @@
               <h3>OpenStreetMap</h3>
               <p>Map tiles © OpenStreetMap contributors, licensed under ODbL. <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">openstreetmap.org</a></p>
             </div>
-            <p class="about-licence">All government data is published under the <strong>Open Government Licence v3.0</strong>. Crime data is anonymised and location-snapped to the nearest street node.</p>
+            <div class="about-source">
+              <h3>USA public data sources</h3>
+              <p>USA reports may use U.S. Census TIGERweb/Geocoder and ACS, National Weather Service alerts, USGS Water Data, FBI Crime Data API, EIA Open Data, NREL Alternative Fuel Stations, and OpenStreetMap/Overpass. USA coverage is not always equivalent to UK street-level data.</p>
+            </div>
+            <p class="about-licence">Government and public data is used under the relevant source terms. UK crime data is anonymised and location-snapped to the nearest street node; USA crime data is reported by agency/geography and is not street-level.</p>
           </div>
         </div>
 
         <footer class="app-footer">
-          Sources: official UK government and public data · See Sources tab
+          Sources: official UK/USA government and public data · See Sources tab
         </footer>
       </div>
 

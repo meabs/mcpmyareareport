@@ -1,7 +1,7 @@
 {
   "name": "mcpmyareareport",
   "version": "1.0.0",
-  "description": "MyAreaReport MCP App for UK postcode intelligence in ChatGPT",
+  "description": "MyAreaReport MCP App for UK and USA area intelligence in ChatGPT",
   "main": "src/index.js",
   "scripts": {
     "setup": "bash scripts/setup.sh",
