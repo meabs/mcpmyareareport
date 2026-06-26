@@ -13,6 +13,7 @@ import {
   getUsageStats,
   recordToolUsage,
 } from "./usage-analytics.js";
+import { getSystemMetrics } from "./system-metrics.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -107,10 +108,73 @@ function escHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function formatBytes(bytes) {
+  const value = Number(bytes || 0);
+  if (!value) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const index = Math.min(units.length - 1, Math.floor(Math.log(value) / Math.log(1024)));
+  return `${(value / (1024 ** index)).toFixed(index ? 1 : 0)} ${units[index]}`;
+}
+
+function formatDuration(seconds) {
+  const value = Math.max(0, Number(seconds || 0));
+  const days = Math.floor(value / 86400);
+  const hours = Math.floor((value % 86400) / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  if (days) return `${days}d ${hours}h`;
+  if (hours) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 function rowsFromCounters(counters, limit = 12) {
   return Object.entries(counters || {})
     .sort((a, b) => (b[1].calls || 0) - (a[1].calls || 0))
     .slice(0, limit);
+}
+
+function renderUtilisationMetric(label, value, detail, percent) {
+  const safePercent = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 0;
+  return `
+    <div class="metric util">
+      <span>${escHtml(label)}</span>
+      <strong>${escHtml(value)}</strong>
+      ${detail ? `<em>${escHtml(detail)}</em>` : ""}
+      <div class="bar"><i style="width:${safePercent}%"></i></div>
+    </div>`;
+}
+
+function renderSystemPanel(system) {
+  if (!system) return "";
+  const memory = system.memory || {};
+  const disk = system.disk || {};
+  const load = system.load || {};
+  return `
+    <section class="panel system-panel">
+      <h2>VPS Utilisation</h2>
+      <div class="metric-grid system-grid">
+        ${renderUtilisationMetric("CPU", system.cpu?.percent == null ? "n/a" : `${system.cpu.percent}%`, `${system.cpu?.cores || 0} cores`, system.cpu?.percent)}
+        ${renderUtilisationMetric("Memory", memory.percent == null ? "n/a" : `${memory.percent}%`, `${formatBytes(memory.used)} / ${formatBytes(memory.total)}`, memory.percent)}
+        ${renderUtilisationMetric("Disk", disk.percent == null ? "n/a" : `${disk.percent}%`, `${formatBytes(disk.used)} / ${formatBytes(disk.total)}`, disk.percent)}
+        <div class="metric util">
+          <span>Load</span>
+          <strong>${formatNumber(load.one?.toFixed ? load.one.toFixed(2) : load.one || 0)}</strong>
+          <em>5m ${formatNumber(load.five?.toFixed ? load.five.toFixed(2) : load.five || 0)} · 15m ${formatNumber(load.fifteen?.toFixed ? load.fifteen.toFixed(2) : load.fifteen || 0)}</em>
+          <div class="bar"><i style="width:${Math.min(100, Math.round(((load.one || 0) / Math.max(1, system.cpu?.cores || 1)) * 100))}%"></i></div>
+        </div>
+        <div class="metric util">
+          <span>Uptime</span>
+          <strong>${escHtml(formatDuration(system.uptimeSeconds))}</strong>
+          <em>Host uptime</em>
+          <div class="bar"><i style="width:100%"></i></div>
+        </div>
+        <div class="metric util">
+          <span>Captured</span>
+          <strong>${escHtml(new Date(system.capturedAt).toLocaleTimeString("en-GB", { timeZone: "Europe/London" }))}</strong>
+          <em>Europe/London</em>
+          <div class="bar"><i style="width:100%"></i></div>
+        </div>
+      </div>
+    </section>`;
 }
 
 function renderCounterCards(title, counter) {
@@ -167,7 +231,7 @@ function renderHourlyBars(hours) {
     </section>`;
 }
 
-function renderUsagePage(stats) {
+function renderUsagePage(stats, system) {
   const dates = Object.keys(stats.days || {}).sort();
   const todayKey = dates.at(-1);
   const today = todayKey ? stats.days[todayKey] : { calls: 0, success: 0, error: 0, totalDurationMs: 0, byHour: {} };
@@ -199,6 +263,11 @@ function renderUsagePage(stats) {
     .metric { border:1px solid var(--border); background:var(--soft); border-radius:8px; padding:12px; }
     .metric span { display:block; color:var(--muted); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
     .metric strong { display:block; margin-top:4px; color:var(--navy); font-size:1.45rem; line-height:1.1; }
+    .metric em { display:block; min-height:1.25rem; margin-top:4px; color:var(--muted); font-size:.78rem; font-style:normal; }
+    .system-panel { height:100%; }
+    .system-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .bar { height:7px; margin-top:10px; overflow:hidden; border-radius:999px; background:#e5eaf2; }
+    .bar i { display:block; height:100%; min-width:2px; border-radius:999px; background:var(--blue); }
     table { width:100%; border-collapse:collapse; font-size:.92rem; }
     th,td { padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; }
     th { color:var(--muted); font-size:.76rem; text-transform:uppercase; letter-spacing:.03em; }
@@ -210,7 +279,7 @@ function renderUsagePage(stats) {
     .hour div { display:flex; align-items:end; justify-content:center; border-bottom:1px solid var(--border); }
     .hour i { display:block; width:100%; max-width:18px; border-radius:4px 4px 0 0; background:var(--blue); opacity:.82; }
     .privacy-note { color:var(--muted); font-size:.86rem; margin-top:10px; }
-    @media (max-width:860px) { header { display:block; } .stamp { display:inline-block; margin-top:12px; white-space:normal; } .grid { grid-template-columns:1fr; } .wide { grid-column:auto; } .hour-grid { overflow-x:auto; grid-template-columns:repeat(24,28px); padding-bottom:8px; } }
+    @media (max-width:860px) { header { display:block; } .stamp { display:inline-block; margin-top:12px; white-space:normal; } .grid { grid-template-columns:1fr; } .wide { grid-column:auto; } .system-grid { grid-template-columns:1fr; } .hour-grid { overflow-x:auto; grid-template-columns:repeat(24,28px); padding-bottom:8px; } }
   </style>
 </head>
 <body>
@@ -223,6 +292,7 @@ function renderUsagePage(stats) {
       <div class="stamp">Last updated<br><strong>${escHtml(updated)}</strong></div>
     </header>
     <div class="grid">
+      <div class="wide">${renderSystemPanel(system)}</div>
       ${renderCounterCards("Today", today)}
       ${renderCounterCards("Last 7 Days", week)}
       ${renderCounterCards("Last 30 Days", month)}
@@ -260,10 +330,10 @@ export async function startStreamableHttpServer(createMcpServer) {
   app.get("/usage", async (req, res) => {
     if (!usageDashboardAuth(req, res)) return;
     try {
-      const stats = await getUsageStats();
+      const [stats, system] = await Promise.all([getUsageStats(), getSystemMetrics()]);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");
-      res.send(renderUsagePage(stats));
+      res.send(renderUsagePage(stats, system));
     } catch (err) {
       console.error("[usage] dashboard error:", err.message);
       res.status(500).send("Usage dashboard unavailable");

@@ -15,8 +15,11 @@ services:
       USAGE_STATS_FILE: /app/data/usage-stats.json
       USAGE_DASHBOARD_USER: ${USAGE_DASHBOARD_USER:-admin}
       USAGE_DASHBOARD_PASSWORD: ${USAGE_DASHBOARD_PASSWORD:-}
+      HOST_PROC_PATH: /host/proc
+      USAGE_DISK_PATH: /app/data
     volumes:
       - myareareport_usage_data:/app/data
+      - /proc:/host/proc:ro
     expose:
       - "3001"
 
