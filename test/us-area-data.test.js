@@ -48,6 +48,12 @@ function mockUsFetch(t) {
         },
       });
     }
+    if (value.includes("fred.stlouisfed.org/graph/fredgraph.csv")) {
+      return new Response("observation_date,NYSTHPI\n2021-01-01,900.0\n2025-01-01,1100.0\n2026-01-01,1155.0\n", {
+        status: 200,
+        headers: { "Content-Type": "text/csv" },
+      });
+    }
     throw new Error(`Unexpected fetch: ${value}`);
   });
 }
@@ -90,7 +96,7 @@ test("builds a USA overview without retaining or requiring raw lookup credential
   assert.equal(report.fuel.cheapest.E10.price, 3.215);
 });
 
-test("USA housing returns a structured caveat when ACS credentials are absent", async (t) => {
+test("USA housing falls back to FHFA state HPI when ACS credentials are absent", async (t) => {
   delete process.env.CENSUS_API_KEY;
   mockUsFetch(t);
 
@@ -98,6 +104,9 @@ test("USA housing returns a structured caveat when ACS credentials are absent", 
 
   assert.equal(property.kind, "area-property");
   assert.equal(property.area.countryCode, "US");
-  assert.equal(property.error, "credentials_missing");
-  assert.match(property.caveat, /not recent individual sale records/);
+  assert.equal(property.error, undefined);
+  assert.equal(property.hpi.latestIndex, 1155);
+  assert.equal(property.hpi.oneYearChangePct, 5);
+  assert.match(property.source, /FHFA House Price Index/);
+  assert.match(property.caveat, /state-level/);
 });

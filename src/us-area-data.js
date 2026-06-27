@@ -6,6 +6,7 @@ const CENSUS_ACS_BASE = "https://api.census.gov/data/2023/acs/acs5";
 const FBI_BASE = "https://api.usa.gov/crime/fbi/cde";
 const NREL_BASE = "https://developer.nrel.gov/api/alt-fuel-stations/v1";
 const EIA_BASE = "https://api.eia.gov/v2/petroleum/pri/gnd/data";
+const FRED_GRAPH_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv";
 const DEFAULT_TIMEOUT_MS = 10000;
 
 const STATE_ABBR_TO_FIPS = {
@@ -409,9 +410,52 @@ async function getAcsHousing(area) {
   };
 }
 
+function parseFredCsv(text) {
+  return String(text || "")
+    .trim()
+    .split(/\r?\n/)
+    .slice(1)
+    .map(line => {
+      const [date, rawValue] = line.split(",");
+      const value = Number(rawValue);
+      return Number.isFinite(value) ? { date, value } : null;
+    })
+    .filter(Boolean);
+}
+
+async function getFhfaStateHpi(area) {
+  if (!area.state) return null;
+  const series = `${area.state}STHPI`;
+  const res = await fetch(`${FRED_GRAPH_BASE}?${new URLSearchParams({ id: series })}`, fetchOptions()).catch(() => null);
+  if (!res?.ok) return null;
+  const rows = parseFredCsv(await res.text());
+  if (!rows.length) return null;
+  const latest = rows.at(-1);
+  const oneYearAgo = rows.find(row => row.date >= `${Number(latest.date.slice(0, 4)) - 1}${latest.date.slice(4)}`) || rows.at(-5) || rows[0];
+  const fiveYearsAgo = rows.find(row => row.date >= `${Number(latest.date.slice(0, 4)) - 5}${latest.date.slice(4)}`) || rows.at(-21) || rows[0];
+  const pctChange = (from, to) => from?.value ? Number((((to.value - from.value) / from.value) * 100).toFixed(1)) : null;
+  return {
+    series,
+    latestDate: latest.date,
+    latestIndex: latest.value,
+    oneYearChangePct: pctChange(oneYearAgo, latest),
+    fiveYearChangePct: pctChange(fiveYearsAgo, latest),
+  };
+}
+
 export async function getUsPropertyData(input) {
   const area = typeof input === "object" ? input : await resolveUsInput(input);
-  const acs = await getAcsHousing(area);
+  const [acs, hpi] = await Promise.all([
+    getAcsHousing(area).catch(() => null),
+    getFhfaStateHpi(area).catch(() => null),
+  ]);
+  const indicators = [
+    acs?.medianHomeValue ? { type: "Median home value", avg: acs.medianHomeValue, count: 1, unit: "usd" } : null,
+    acs?.medianRent ? { type: "Median gross rent", avg: acs.medianRent, count: 1, unit: "usd" } : null,
+    hpi?.latestIndex ? { type: "State house price index", avg: Math.round(hpi.latestIndex), count: 1, unit: "index" } : null,
+    hpi?.oneYearChangePct != null ? { type: "1-year HPI change", avg: hpi.oneYearChangePct, count: 1, unit: "percent" } : null,
+    hpi?.fiveYearChangePct != null ? { type: "5-year HPI change", avg: hpi.fiveYearChangePct, count: 1, unit: "percent" } : null,
+  ].filter(Boolean);
   return {
     kind: "area-property",
     mode: "property",
@@ -421,14 +465,14 @@ export async function getUsPropertyData(input) {
     totalCount: acs?.population || 0,
     avgPrice: acs?.medianHomeValue || null,
     medianPrice: acs?.medianHomeValue || null,
-    avgByType: [
-      acs?.medianHomeValue ? { type: "Median home value", avg: acs.medianHomeValue, count: 1 } : null,
-      acs?.medianRent ? { type: "Median gross rent", avg: acs.medianRent, count: 1 } : null,
-    ].filter(Boolean),
-    since: "ACS 5-year",
-    source: "U.S. Census ACS 5-year",
-    caveat: "USA housing figures are Census indicators, not recent individual sale records.",
-    error: acs ? undefined : "credentials_missing",
+    avgByType: indicators,
+    since: acs ? "ACS 5-year" : (hpi?.latestDate || "latest"),
+    source: [acs ? "U.S. Census ACS 5-year" : null, hpi ? "FHFA House Price Index via FRED" : null].filter(Boolean).join(" and ") || "U.S. Census ACS 5-year",
+    caveat: acs
+      ? "USA housing figures are Census indicators, not recent individual sale records."
+      : "USA housing fallback shows state-level FHFA House Price Index trends, not local values or recent individual sale records.",
+    error: acs || hpi ? undefined : "credentials_missing",
+    hpi,
   };
 }
 
@@ -572,10 +616,13 @@ export function formatUsToolResultText(kind, payload) {
     ].join("\n");
   }
   if (kind === "area-property") {
-    const { area, avgPrice, totalCount, source, caveat } = payload;
+    const { area, avgPrice, totalCount, source, caveat, hpi } = payload;
     return [
       `USA housing indicators — ${area.postcode} (${area.district}, ${area.region})`,
-      avgPrice ? `Median home value indicator: $${avgPrice.toLocaleString("en-US")}` : "Housing value indicator unavailable without Census API key or for this geography.",
+      avgPrice ? `Median home value indicator: $${avgPrice.toLocaleString("en-US")}` : "",
+      hpi?.latestIndex ? `State FHFA house price index: ${hpi.latestIndex.toLocaleString("en-US")} (${hpi.latestDate})` : "",
+      hpi?.oneYearChangePct != null ? `1-year HPI change: ${hpi.oneYearChangePct > 0 ? "+" : ""}${hpi.oneYearChangePct}%` : "",
+      !avgPrice && !hpi ? "Housing indicator unavailable without Census API key or for this geography." : "",
       totalCount ? `Population indicator: ${totalCount.toLocaleString("en-US")}` : "",
       `Source: ${source || "U.S. Census"}`,
       caveat || "USA housing figures are Census indicators, not recent individual sale records.",

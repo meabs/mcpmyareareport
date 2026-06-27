@@ -366,6 +366,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
     const crime = state.crimeDetail || state.crime;
     if (!el || !crime || !state.area) return;
     const isUs = state.area.countryCode === "US";
+    const crimeUnavailable = crime.status === "unavailable";
 
     el.innerHTML = `
       <div class="section">
@@ -390,6 +391,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         </div>
         <div class="section-body">
           <div id="${bodyId}-bars" class="crime-bar-list"></div>
+          ${crimeUnavailable ? `<div class="empty-state">${escHtml(crime.reason === "credentials_missing" ? "USA reported crime trends require an FBI/data.gov API key on this staging server." : "USA reported crime trends are temporarily unavailable for this geography.")}</div>` : ''}
         </div>
       </div>
 
@@ -549,7 +551,15 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
 
     const isUs = data.area?.countryCode === "US";
     const fmtPrice = p => p ? `${isUs ? '$' : '£'}${p.toLocaleString('en-GB')}` : 'n/a';
-    const maxAvg = data.avgByType?.[0]?.avg || 1;
+    const fmtIndicator = item => {
+      if (!item) return 'n/a';
+      if (item.unit === 'percent') return `${item.avg > 0 ? '+' : ''}${item.avg}%`;
+      if (item.unit === 'index') return item.avg.toLocaleString('en-GB');
+      return fmtPrice(item.avg);
+    };
+    const hpiLatest = data.avgByType?.find(item => item.type === 'State house price index');
+    const hpiOneYear = data.avgByType?.find(item => item.type === '1-year HPI change');
+    const maxAvg = Math.max(...(data.avgByType || []).map(item => Math.abs(Number(item.avg) || 0)), 1);
 
     el.innerHTML = `
       <div class="section">
@@ -564,12 +574,12 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
               <div class="price-summary-value">${fmtPrice(data.avgPrice)}</div>
             </div>
             <div class="price-summary-card">
-              <div class="price-summary-label">${isUs ? 'Median value' : 'Median'}</div>
-              <div class="price-summary-value">${fmtPrice(data.medianPrice)}</div>
+              <div class="price-summary-label">${isUs && !data.medianPrice ? 'State HPI' : (isUs ? 'Median value' : 'Median')}</div>
+              <div class="price-summary-value">${isUs && !data.medianPrice ? fmtIndicator(hpiLatest) : fmtPrice(data.medianPrice)}</div>
             </div>
             <div class="price-summary-card">
-              <div class="price-summary-label">${isUs ? 'Population' : 'Sales recorded'}</div>
-              <div class="price-summary-value">${data.totalCount}</div>
+              <div class="price-summary-label">${isUs && hpiOneYear ? '1-year HPI' : (isUs ? 'Population' : 'Sales recorded')}</div>
+              <div class="price-summary-value">${isUs && hpiOneYear ? fmtIndicator(hpiOneYear) : data.totalCount}</div>
             </div>
           </div>
         </div>
@@ -584,13 +594,13 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
               <div class="crime-bar-item">
                 <span class="crime-bar-label">${t.type}</span>
                 <div class="crime-bar-track">
-                  <div class="crime-bar-fill" style="width:${Math.round((t.avg / maxAvg) * 100)}%;background:var(--blue)"></div>
+                  <div class="crime-bar-fill" style="width:${Math.round((Math.abs(t.avg) / maxAvg) * 100)}%;background:var(--blue)"></div>
                 </div>
-                <span class="crime-bar-count" style="width:80px;text-align:right;font-size:0.72rem">${fmtPrice(t.avg)}</span>
+                <span class="crime-bar-count" style="width:80px;text-align:right;font-size:0.72rem">${fmtIndicator(t)}</span>
               </div>
             `).join('')}
           </div>
-          <p style="font-size:0.72rem;color:var(--muted);margin-top:10px">Based on ${data.totalCount} sales</p>
+          <p style="font-size:0.72rem;color:var(--muted);margin-top:10px">${isUs ? 'USA housing indicators are not individual sale records.' : `Based on ${data.totalCount} sales`}</p>
         </div>
       </div>` : ''}
 

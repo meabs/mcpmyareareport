@@ -362,7 +362,7 @@ export async function startStreamableHttpServer(createMcpServer) {
       name_for_human: manifestNameForHuman,
       name_for_model: manifestNameForModel,
       description_for_human: "UK and USA area intelligence — crime and safety trends, flood or weather alerts, housing, fuel, and road context from public data.",
-      description_for_model: "Provides UK and USA area intelligence for supported postcodes, ZIP codes, addresses, and place names. UK results include street-level crime from Police UK, flood warnings and river levels from the Environment Agency, house prices from HM Land Registry, live fuel prices from GOV.UK Fuel Finder, and road traffic from National Highways and DfT. USA results use public sources such as U.S. Census geocoding and ACS indicators, National Weather Service alerts, USGS monitoring stations, FBI Crime Data where configured, EIA fuel price indicators, NREL alternative-fuel station locations, and OpenStreetMap road context. USA crime, property, roads, and fuel results include caveats because national USA coverage is not the same as UK street-level coverage. User-submitted lookup inputs are used only to retrieve requested public data and are not stored by MyAreaReport after the request completes.",
+      description_for_model: "Provides UK and USA area intelligence for supported postcodes, ZIP codes, addresses, and place names. UK results include street-level crime from Police UK, flood warnings and river levels from the Environment Agency, house prices from HM Land Registry, live fuel prices from GOV.UK Fuel Finder, and road traffic from National Highways and DfT. USA results use public sources such as U.S. Census geocoding and ACS indicators where configured, FHFA House Price Index via FRED, National Weather Service alerts, USGS monitoring stations, FBI Crime Data where configured, EIA fuel price indicators, NREL alternative-fuel station locations, and OpenStreetMap road context. USA crime, property, roads, and fuel results include caveats because national USA coverage is not the same as UK street-level coverage. User-submitted lookup inputs are used only to retrieve requested public data and are not stored by MyAreaReport after the request completes.",
       auth: { type: "none" },
       api: { type: "mcp", url: mcpServerUrl },
       logo_url: `${publicBase}/logo.png`,
@@ -596,6 +596,7 @@ export async function startStreamableHttpServer(createMcpServer) {
     <li>Department for Transport road traffic datasets — local A-road count-point data</li>
     <li><a href="https://geocoding.geo.census.gov">U.S. Census Geocoder</a> and Census TIGERweb — USA geocoding, ZIP, city, state, county, and coordinate metadata</li>
     <li><a href="https://api.census.gov/data.html">U.S. Census ACS API</a> — USA housing, population, tenure, rent, and related indicators when configured</li>
+    <li><a href="https://fred.stlouisfed.org">Federal Reserve Economic Data (FRED)</a> — FHFA House Price Index series for USA state-level housing trends</li>
     <li><a href="https://api.weather.gov">National Weather Service API</a> — USA active weather, flood, and emergency alerts</li>
     <li><a href="https://waterservices.usgs.gov">USGS Water Data APIs</a> — USA nearby monitoring stations and water readings</li>
     <li><a href="https://api.usa.gov/crime/fbi/cde">FBI Crime Data API</a> — USA reported crime trend data where configured and available</li>
@@ -850,7 +851,7 @@ export async function startStreamableHttpServer(createMcpServer) {
 
       <h2>Data sources and accuracy</h2>
       <p>Reports may include UK data from Police UK, the Environment Agency, Postcodes.io, HM Land Registry, National Highways, GOV.UK Fuel Finder, Department for Transport road traffic data, and OpenStreetMap.</p>
-      <p>Reports may include USA data from U.S. Census geocoding, TIGERweb, and ACS APIs, National Weather Service alerts, USGS Water Data APIs, FBI Crime Data where configured, EIA Open Data, NREL Alternative Fuel Stations where configured, OpenStreetMap, and Overpass API.</p>
+      <p>Reports may include USA data from U.S. Census geocoding, TIGERweb, and ACS APIs where configured, FHFA House Price Index series via FRED, National Weather Service alerts, USGS Water Data APIs, FBI Crime Data where configured, EIA Open Data, NREL Alternative Fuel Stations where configured, OpenStreetMap, and Overpass API.</p>
       <p>These sources may be delayed, incomplete, unavailable, or changed by their publishers. USA national data does not provide full UK-style parity: USA crime results are reported trend summaries rather than street-level incidents, USA housing results are indicators rather than recent individual sale prices, USA roads are nearby road context unless traffic counts are available, and USA fuel data is regional price or alternative-fuel context rather than live petrol station prices. MyAreaReport does not guarantee that any result is complete, current, or error-free.</p>
 
       <h2>No emergency use</h2>
