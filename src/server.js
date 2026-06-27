@@ -553,7 +553,7 @@ async function getFuelForQuery(query) {
 }
 
 export function createServer() {
-  const server = new McpServer({ name: "MyAreaReport", version: "1.0.0" });
+  const server = new McpServer({ name: process.env.MCP_SERVER_NAME || "MyAreaReport", version: "1.0.0" });
 
   // ── LLM-visible: area overview ────────────────────────────────────────────
   registerAppTool(

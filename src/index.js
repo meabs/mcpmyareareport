@@ -312,6 +312,8 @@ export async function startStreamableHttpServer(createMcpServer) {
   const port = Number(process.env.PORT ?? 3001);
   const publicBase = (process.env.MCP_APP_UI_DOMAIN || "https://mcp.myareareport.com").replace(/\/+$/, "");
   const mcpServerUrl = process.env.MCP_SERVER_URL || `${publicBase}/mcp`;
+  const manifestNameForHuman = process.env.MCP_MANIFEST_NAME_FOR_HUMAN || "MyAreaReport";
+  const manifestNameForModel = process.env.MCP_MANIFEST_NAME_FOR_MODEL || "myareareport";
   const app = createMcpExpressApp({ host: "0.0.0.0" });
   app.use(cors());
 
@@ -357,8 +359,8 @@ export async function startStreamableHttpServer(createMcpServer) {
   app.get("/.well-known/ai-plugin.json", (_req, res) => {
     res.json({
       schema_version: "v1",
-      name_for_human: "MyAreaReport",
-      name_for_model: "myareareport",
+      name_for_human: manifestNameForHuman,
+      name_for_model: manifestNameForModel,
       description_for_human: "UK and USA area intelligence — crime and safety trends, flood or weather alerts, housing, fuel, and road context from public data.",
       description_for_model: "Provides UK and USA area intelligence for supported postcodes, ZIP codes, addresses, and place names. UK results include street-level crime from Police UK, flood warnings and river levels from the Environment Agency, house prices from HM Land Registry, live fuel prices from GOV.UK Fuel Finder, and road traffic from National Highways and DfT. USA results use public sources such as U.S. Census geocoding and ACS indicators, National Weather Service alerts, USGS monitoring stations, FBI Crime Data where configured, EIA fuel price indicators, NREL alternative-fuel station locations, and OpenStreetMap road context. USA crime, property, roads, and fuel results include caveats because national USA coverage is not the same as UK street-level coverage. User-submitted lookup inputs are used only to retrieve requested public data and are not stored by MyAreaReport after the request completes.",
       auth: { type: "none" },
